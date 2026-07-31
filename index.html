@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 修正版</title>
+    <title>STAR FORGE - 完全修正版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -917,7 +917,7 @@
                 }
             }
 
-            // ターン終了時の個別に適用
+            // ターン終了時の回復アビリティ適用
             applyEndTurnAbilities(playerTeam[pActiveIdx]);
             applyEndTurnAbilities(enemyTeam[eActiveIdx]);
 
@@ -929,7 +929,7 @@
             document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
         }
 
-        // 修正：攻撃（attacker）と防御（defender）の各パラメータ参照・振り分けを厳密に分離
+        // 修正：defender.hp -= dmg; に修正（正しく攻撃対象の防御側HPを削る）
         async function executeSingleAction(attacker, defender, isAttackerPlayer) {
             let baseDmg = Math.max(10, attacker.atk * (100 / (100 + defender.def)));
             
@@ -944,6 +944,8 @@
             });
 
             let dmg = Math.round(baseDmg);
+            
+            // ✅ 防御側(defender)のHPを引くように修正！
             defender.hp -= dmg;
 
             const defenderCardId = isAttackerPlayer ? 'enemy-card-box' : 'player-card-box';
