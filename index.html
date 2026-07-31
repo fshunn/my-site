@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - マルチ対応・完全版 (Ver 7.2)</title>
-    <!-- WebRTC(PeerJS) ライブラリ読み込み -->
+    <title>STAR FORGE - マルチ対応・修正版 (Ver 7.3)</title>
+    <!-- PeerJS ライブラリ読み込み -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: #fff; max-width: 850px; margin: 0 auto; }
@@ -11,7 +11,6 @@
         .spinner { border: 4px solid #333; border-top: 4px solid #00d2ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 画面揺れ演出 */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); background-color: #2a2a2a; }
             10% { transform: translate(-3px, -2px) rotate(-1deg); background-color: #5a1a1a; }
@@ -27,12 +26,10 @@
         }
         .shake-effect { animation: shake 0.4s ease-in-out; }
 
-        /* スタート画面 */
         #start-screen { text-align: center; padding: 40px 20px; background: #282828; border-radius: 12px; margin-top: 20px; }
         .game-title { font-size: 42px; color: #ffeb3b; margin-bottom: 5px; }
         .subtitle { color: #aaa; margin-bottom: 25px; font-size: 15px; }
 
-        /* 折りたたみアコーディオン */
         .how-to-accordion { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; margin-bottom: 25px; overflow: hidden; text-align: left; }
         .how-to-header { background: #151922; padding: 12px 20px; font-weight: bold; color: #00d2ff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 16px; }
         .how-to-header:hover { background: #1a202c; }
@@ -95,7 +92,6 @@
         button.reroll-btn { background: #ff9800; color: #000; font-weight: bold; }
         button.iv-reroll-btn { background: #9c27b0; color: #fff; font-weight: bold; padding: 4px 10px; font-size: 12px; }
         button.overclock-btn { background: #e91e63; color: #fff; font-size: 11px; padding: 4px 8px; font-weight: bold; }
-        button.sell-btn { background: #f44336; color: white; }
 
         .buy-area { background: #202020; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
         .slot { border: 1px solid #555; padding: 8px 12px; margin-top: 8px; border-radius: 6px; background: #333; display: flex; align-items: center; justify-content: space-between; }
@@ -148,47 +144,12 @@
 </head>
 <body>
 
-    <!-- スタート画面 -->
     <div id="start-screen">
         <h1 class="game-title">STAR FORGE</h1>
         <p class="subtitle">- オンライン通信対戦 & AIバトル -</p>
-        
-        <div class="how-to-accordion">
-            <div class="how-to-header" onclick="toggleHowTo()">
-                <span>📖 STAR FORGE の遊び方・ルール</span>
-                <span id="how-to-icon">▼ クリックで開く</span>
-            </div>
-            <div id="how-to-content" class="how-to-content">
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">1. パーティ構築（ビルドフェーズ）</div>
-                    <ul class="how-to-ul">
-                        <li>所持金 <strong>5000 pt</strong> を使って最大3体のモンスターを構築します。</li>
-                        <li><strong>コスト（★）</strong>：パーティ全体の合計コストは <strong>★7</strong> まで組み込み可能です。</li>
-                        <li>枠（★1〜★4）を開放すると、★に応じた固有アビリティ（特性）が付与されます。</li>
-                    </ul>
-                </div>
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">2. 厳選と突破（ポイント消費）</div>
-                    <ul class="how-to-ul">
-                        <li><strong>ステータスリロール (150pt)</strong>：個体ランク（C〜S）とステータス補正値をランダムに振り直します。</li>
-                        <li><strong>アビリティリロール (100pt)</strong>：各枠の固有アビリティをランダムで変更します。</li>
-                        <li><strong>🔒 固定（ロック）</strong>：残したいステータスを最大2つまで固定してリロールできます。</li>
-                        <li><strong>💥 突破 (オーバークロック)</strong>：能力値を限界突破させて最高の <strong>S+</strong> に固定強化します。</li>
-                    </ul>
-                </div>
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">3. 対戦（バトルフェーズ）</div>
-                    <ul class="how-to-ul">
-                        <li>ターン制バトルです。「⚔️ 攻撃」または「🔄 交代」を選択します。</li>
-                        <li><strong>素早さ勝負</strong>：素早さの高い方が先制攻撃！テンポ良く交互に攻撃を行います。</li>
-                        <li><strong>固有アビリティ</strong>：自動回復、ダメージ軽減、吸血、食いしばりなどの特性が自動発動します！</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
 
         <div class="mode-box">
-            <div class="mode-title">🤖 AI対戦モード (難易度選択)</div>
+            <div class="mode-title">🤖 AI対戦モード</div>
             <button class="start-btn btn-easy" onclick="startAIBattle('easy')">かんたん</button>
             <button class="start-btn btn-normal" onclick="startAIBattle('normal')">ふつう</button>
             <button class="start-btn btn-hard" onclick="startAIBattle('hard')">むずかしい</button>
@@ -209,7 +170,7 @@
         <div style="color: #aaa;">合言葉:</div>
         <div id="display-room-code" class="room-code-display">---</div>
         <div class="spinner"></div>
-        <p id="lobby-status">対戦相手を探しています...</p>
+        <p id="lobby-status">サーバーへ接続中...</p>
         <button onclick="location.reload()" style="background:#f44336; padding:8px 20px;">キャンセル</button>
     </div>
 
@@ -231,16 +192,6 @@
             </div>
         </div>
 
-        <div class="cost-table-box">
-            <div style="font-weight:bold; color:#00d2ff; margin-bottom:6px;">💡 コスト・消費ポイント一覧</div>
-            <div class="cost-grid">
-                <div class="cost-badge">🎲 ステータスリロール: <span class="cost-val">150 pt</span></div>
-                <div class="cost-badge">🔀 アビリティリロール: <span class="cost-val">100 pt</span></div>
-                <div class="cost-badge">💥 ステータス突破: <span class="cost-val">200~1000 pt</span></div>
-                <div class="cost-badge">🔒 固定枠: <span class="cost-val">突破も含め最大2個まで</span></div>
-            </div>
-        </div>
-
         <div id="monsters-container"></div>
 
         <button id="finish-build-btn" style="width: 100%; padding: 16px; font-size: 18px; background: #e91e63; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 40px;" onclick="finishBuild()">
@@ -248,17 +199,14 @@
         </button>
     </div>
 
-    <!-- バトル待合室（初手モンスター選択） -->
+    <!-- バトル待合室 -->
     <div id="pre-battle-room">
         <h2>⚔️ バトル準備待合室</h2>
-        <p style="color:#aaa; font-size:14px;">ステータス変更は固定されました。最初に場に出すモンスターを選択してください。</p>
-        
+        <p style="color:#aaa; font-size:14px;">最初に場に出すモンスターを選択してください。</p>
         <div id="starter-select-list" class="starter-select-container"></div>
-
         <button id="starter-ready-btn" class="start-btn" style="font-size:18px; padding:12px 30px;" onclick="confirmStarterReady()">
             👍 初手決定 & 準備OK！
         </button>
-
         <p id="pre-battle-status" style="margin-top:15px; color:#ffeb3b; font-weight:bold;">お互いの準備完了を待っています...</p>
     </div>
 
@@ -270,7 +218,6 @@
         </div>
 
         <div class="battle-arena" style="margin-top: 15px;">
-            <!-- プレイヤー -->
             <div id="player-card-box" class="battle-card player-card">
                 <div id="display-player-name" style="color: #00d2ff; font-size: 12px; font-weight: bold;">[YOU]</div>
                 <h3 id="p-mon-name">---</h3>
@@ -286,7 +233,6 @@
                 </div>
             </div>
 
-            <!-- 相手 -->
             <div id="enemy-card-box" class="battle-card enemy-card">
                 <div id="display-enemy-name" style="color: #ff1744; font-size: 12px; font-weight: bold;">[ENEMY]</div>
                 <h3 id="e-mon-name">---</h3>
@@ -315,7 +261,7 @@
         </div>
     </div>
 
-    <!-- 交代モーダル -->
+    <!-- モーダル各種 -->
     <div id="switch-modal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top:0; color:#00d2ff;">🔄 交代先を選択</h3>
@@ -324,7 +270,6 @@
         </div>
     </div>
 
-    <!-- リザルト モーダル -->
     <div id="result-modal" class="modal-overlay">
         <div id="result-box" class="result-content">
             <h1 id="result-title" class="result-title">VICTORY</h1>
@@ -335,18 +280,6 @@
 
     <script>
         const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-        function toggleHowTo() {
-            const content = document.getElementById('how-to-content');
-            const icon = document.getElementById('how-to-icon');
-            if (content.style.display === "block") {
-                content.style.display = "none";
-                icon.textContent = "▼ クリックで開く";
-            } else {
-                content.style.display = "block";
-                icon.textContent = "▲ 閉じる";
-            }
-        }
 
         let gameMode = "AI"; 
         let aiDifficulty = "normal";
@@ -366,7 +299,7 @@
         let isProcessingTurn = false;
 
         let playerName = "プレイヤー1";
-        let enemyPlayerName = "AI";
+        let enemyPlayerName = "対戦相手";
         let remainingPt = 5000;
         const MAX_PARTY_STARS = 7, MAX_SLOTS = 1, REROLL_COST = 100, IV_REROLL_COST = 150, MAX_TOTAL_LOCKS = 2;
         const OVERCLOCK_COST_TABLE = { 1: 200, 2: 400, 3: 700, 4: 1000 };
@@ -395,80 +328,74 @@
         const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
 
         const ABILITY_POOL = {
-            1: [
-                "微再生（毎ターンHP3%回復）",
-                "かすり傷（被ダメ5%軽減）",
-                "微弱吸血（与ダメの5%HP回復）",
-                "鋭利（会心ダメージ+15%）",
-                "応戦（被撃時5%で反撃）"
-            ],
-            2: [
-                "リジェネ（毎ターンHP7%回復）",
-                "鉄壁の構え（被ダメ12%軽減）",
-                "吸血の構え（与ダメの10%HP回復）",
-                "急所突貫（会心率+10%）",
-                "カウンター（被撃時15%で反撃）"
-            ],
-            3: [
-                "ハイリジェネ（毎ターンHP12%回復）",
-                "金剛の盾（被ダメ20%軽減）",
-                "強欲の吸血（与ダメの20%HP回復）",
-                "一撃必殺（会心ダメージ+50%）",
-                "背水の陣（HP30%以下でダメージ+40%）"
-            ],
-            4: [
-                "不屈の魂（致死ダメを1度だけHP1で耐える）",
-                "超リジェネ（毎ターンHP20%回復）",
-                "絶対防御（被ダメ35%軽減）",
-                "魔王の吸血（与ダメの35%HP回復）",
-                "カウンターマスター（被撃時35%で反撃）"
-            ]
+            1: ["微再生（毎ターンHP3%回復）", "かすり傷（被ダメ5%軽減）", "微弱吸血（与ダメの5%HP回復）", "鋭利（会心ダメージ+15%）"],
+            2: ["リジェネ（毎ターンHP7%回復）", "鉄壁の構え（被ダメ12%軽減）", "吸血の構え（与ダメの10%HP回復）", "急所突貫（会心率+10%）"],
+            3: ["ハイリジェネ（毎ターンHP12%回復）", "金剛の盾（被ダメ20%軽減）", "強欲の吸血（与ダメの20%HP回復）", "一撃必殺（会心ダメージ+50%）"],
+            4: ["不屈の魂（致死ダメを1度だけHP1で耐える）", "超リジェネ（毎ターンHP20%回復）", "絶対防御（被ダメ35%軽減）", "魔王の吸血（与ダメの35%HP回復）"]
         };
 
-        function triggerShake(elementId) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            el.classList.remove('shake-effect');
-            void el.offsetWidth;
-            el.classList.add('shake-effect');
-        }
-
-        function getTotalLockCount(mon) {
-            let count = 0;
-            if (mon.overclockedStats) {
-                for (let k in mon.overclockedStats) {
-                    if (mon.overclockedStats[k]) count++;
-                }
-            }
-            if (mon.locks) {
-                for (let k in mon.locks) {
-                    if (mon.locks[k] && !(mon.overclockedStats && mon.overclockedStats[k])) {
-                        count++;
-                    }
-                }
-            }
-            return count;
-        }
-
+        /* 通信（PeerJS）設定の最適化 */
         function joinLobby(role) {
-            const pass = document.getElementById('passcode-input').value.trim();
-            if (!pass) return alert("合言葉を入力してください！");
+            const rawPass = document.getElementById('passcode-input').value.trim();
+            if (!rawPass) return alert("合言葉を入力してください！");
             
+            // 安全なPeerID文字列に変換（英数字のみ）
+            const safePass = rawPass.replace(/[^a-zA-Z0-9]/g, '');
+            if (!safePass) return alert("合言葉は半角英数字で入力してください。");
+
             gameMode = role.toUpperCase();
-            const hostPeerId = "starforge-room-" + pass;
+            const roomId = "starforge-room-v7-" + safePass;
 
             document.getElementById('start-screen').style.display = "none";
             document.getElementById('lobby-screen').style.display = "block";
-            document.getElementById('display-room-code').textContent = pass;
+            document.getElementById('display-room-code').textContent = rawPass;
+            const statusText = document.getElementById('lobby-status');
+
+            // PeerJSオプション (公式パブリックサーバーを使用)
+            const peerOptions = {
+                host: '0.peerjs.com',
+                port: 443,
+                path: '/',
+                secure: true,
+                debug: 1
+            };
 
             if (role === 'host') {
-                peer = new Peer(hostPeerId);
-                peer.on('connection', c => { conn = c; setupConnection(); });
-                peer.on('error', () => { alert("部屋の作成に失敗しました。"); location.reload(); });
+                statusText.textContent = "部屋を作成中...";
+                peer = new Peer(roomId, peerOptions);
+
+                peer.on('open', (id) => {
+                    statusText.textContent = "対戦相手の接続を待っています...";
+                });
+
+                peer.on('connection', c => { 
+                    conn = c; 
+                    setupConnection(); 
+                });
+
+                peer.on('error', (err) => { 
+                    console.error("Peer Error:", err);
+                    if (err.type === 'unavailable-id') {
+                        alert("この合言葉は既に使用されています。別の合言葉を試してください。");
+                    } else {
+                        alert("部屋の作成に失敗しました: " + err.type);
+                    }
+                    location.reload(); 
+                });
             } else {
-                peer = new Peer();
-                peer.on('open', () => { conn = peer.connect(hostPeerId); setupConnection(); });
-                peer.on('error', () => { alert("部屋が見つかりませんでした。"); location.reload(); });
+                statusText.textContent = "ホストの部屋を探しています...";
+                peer = new Peer(peerOptions);
+
+                peer.on('open', () => { 
+                    conn = peer.connect(roomId); 
+                    setupConnection(); 
+                });
+
+                peer.on('error', (err) => { 
+                    console.error("Peer Error:", err);
+                    alert("部屋への接続に失敗しました。合言葉を確認してください。"); 
+                    location.reload(); 
+                });
             }
         }
 
@@ -479,7 +406,13 @@
                 updateUI();
                 notifyBuildStatus();
             });
+
             conn.on('data', data => handleReceiveData(data));
+            
+            conn.on('close', () => {
+                alert("対戦相手との通信が切断されました。");
+                location.reload();
+            });
         }
 
         function startAIBattle(diff) {
@@ -520,7 +453,7 @@
             if (gameMode !== "AI") sendData({ type: 'BUILD_STATUS', isReady: isMyBuildReady, playerName: playerName });
         }
 
-        function updateMonsterName(monIdx, newName) { monsters[monIdx].name = newName || `モンスター ${monIdx + 1}`; }
+        /* ゲームロジック */
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
 
@@ -541,63 +474,14 @@
         }
 
         function getPartyTotalStars() { return monsters.reduce((sum, mon) => sum + mon.currentStars, 0); }
-        function getOverclockCost(mon) { return OVERCLOCK_COST_TABLE[mon.currentStars || 1] || 500; }
 
         function buySlot(monIdx, rarity, cost) {
             const mon = monsters[monIdx];
             if (mon.slots.length >= MAX_SLOTS || getPartyTotalStars() + rarity > MAX_PARTY_STARS || remainingPt < cost) return;
             remainingPt -= cost;
             mon.currentStars += rarity; 
-            mon.locks = {}; 
-            mon.overclockedStats = {}; 
-            mon.hasOverclocked = false; 
             mon.ivs = generateIVs();
             mon.slots.push({ rarity: rarity, cost: cost, ability: ABILITY_POOL[rarity][Math.floor(Math.random() * ABILITY_POOL[rarity].length)] });
-            updateUI();
-        }
-
-        function reroll(monIdx, slotIdx) {
-            if (remainingPt < REROLL_COST) return;
-            remainingPt -= REROLL_COST;
-            const mon = monsters[monIdx];
-            mon.slots[slotIdx].ability = ABILITY_POOL[mon.slots[slotIdx].rarity][Math.floor(Math.random() * ABILITY_POOL[mon.slots[slotIdx].rarity].length)];
-            updateUI();
-        }
-
-        function rerollIVs(monIdx) {
-            if (remainingPt < IV_REROLL_COST) return;
-            remainingPt -= IV_REROLL_COST;
-            monsters[monIdx].ivs = generateIVs(monsters[monIdx].ivs, monsters[monIdx].locks, monsters[monIdx].overclockedStats);
-            updateUI();
-        }
-
-        function overclockStat(monIdx, statType) {
-            const mon = monsters[monIdx];
-            const cost = getOverclockCost(mon);
-            if (mon.hasOverclocked || remainingPt < cost) return;
-
-            remainingPt -= cost;
-            mon.hasOverclocked = true;
-            if (!mon.overclockedStats) mon.overclockedStats = {};
-            mon.overclockedStats[statType] = true;
-            if (!mon.locks) mon.locks = {};
-            mon.locks[statType] = true;
-            
-            mon.ivs[statType] = { rank: "SPlus", value: STAT_CONFIG[statType].overclockVal };
-            updateUI();
-        }
-
-        function toggleLock(monIdx, statType) {
-            const mon = monsters[monIdx];
-            if (mon.overclockedStats && mon.overclockedStats[statType]) return; 
-            if (!mon.locks) mon.locks = {};
-            
-            if (mon.locks[statType]) {
-                mon.locks[statType] = false;
-            } else {
-                if (getTotalLockCount(mon) >= MAX_TOTAL_LOCKS) return alert(`ロック枠（突破含む）は最大${MAX_TOTAL_LOCKS}個までです！`);
-                mon.locks[statType] = true;
-            }
             updateUI();
         }
 
@@ -616,7 +500,7 @@
                 if (mon.slots.length === 0) {
                     slotsHTML = `
                         <div class="buy-area">
-                            <div style="font-size:12px; color:#aaa; margin-bottom:5px;">枠を選択して購入（所持枠数に応じた特性付与）:</div>
+                            <div style="font-size:12px; color:#aaa; margin-bottom:5px;">枠を選択して購入:</div>
                             <button onclick="buySlot(${monIdx}, 1, 300)">★1 開放 (300pt)</button>
                             <button onclick="buySlot(${monIdx}, 2, 600)">★2 開放 (600pt)</button>
                             <button onclick="buySlot(${monIdx}, 3, 1000)">★3 開放 (1000pt)</button>
@@ -624,58 +508,16 @@
                         </div>
                     `;
                 } else {
-                    mon.slots.forEach((s, sIdx) => {
-                        slotsHTML += `
-                            <div class="slot">
-                                <div><strong>★${s.rarity} 固有能力:</strong> ${s.ability}</div>
-                                <button class="reroll-btn" onclick="reroll(${monIdx}, ${sIdx})">🔀 リロール (${REROLL_COST}pt)</button>
-                            </div>
-                        `;
+                    mon.slots.forEach((s) => {
+                        slotsHTML += `<div class="slot"><div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div></div>`;
                     });
-                }
-
-                let ivHTML = "";
-                if (mon.ivs) {
-                    let items = "";
-                    for (let type in STAT_CONFIG) {
-                        const conf = STAT_CONFIG[type];
-                        const iv = mon.ivs[type];
-                        const isLocked = mon.locks && mon.locks[type];
-                        const isOc = mon.overclockedStats && mon.overclockedStats[type];
-                        
-                        items += `
-                            <div class="iv-item">
-                                <div>
-                                    <span style="font-weight:bold;">${conf.label}:</span>
-                                    <span class="rank-${iv.rank}">${iv.rank}</span> (+${iv.value})
-                                </div>
-                                <div style="display:flex; align-items:center;">
-                                    <label class="lock-label">
-                                        <input type="checkbox" ${isLocked ? 'checked' : ''} ${isOc ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')">
-                                        ${isOc ? '💥突破' : '🔒'}
-                                    </label>
-                                    <button class="overclock-btn" ${mon.hasOverclocked ? 'disabled' : ''} onclick="overclockStat(${monIdx}, '${type}')">💥突破 (${getOverclockCost(mon)}pt)</button>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    ivHTML = `
-                        <div class="iv-container">
-                            <div class="iv-header">
-                                <span style="font-weight:bold; color:#00d2ff; font-size:13px;">ステータス補正値 (個体値)</span>
-                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})">🎲 全体リロール (${IV_REROLL_COST}pt)</button>
-                            </div>
-                            <div class="iv-grid">${items}</div>
-                        </div>
-                    `;
                 }
 
                 card.innerHTML = `
                     <div class="monster-header">
-                        <input type="text" class="monster-name-input" value="${mon.name}" onchange="updateMonsterName(${monIdx}, this.value)">
+                        <span style="font-weight:bold; color:#00d2ff;">${mon.name}</span>
                         <span class="star-count">★${mon.currentStars}</span>
                     </div>
-                    ${ivHTML}
                     ${slotsHTML}
                 `;
                 container.appendChild(card);
@@ -684,7 +526,7 @@
 
         function createCalculatedMonster(mon) {
             if (!mon.ivs) mon.ivs = generateIVs();
-            const calc = {
+            return {
                 name: mon.name,
                 stars: mon.currentStars,
                 maxHp: STAT_BASE.hp + mon.ivs.hp.value,
@@ -694,32 +536,8 @@
                 spd: STAT_BASE.spd + mon.ivs.spd.value,
                 critRate: STAT_BASE.critRate + mon.ivs.critRate.value,
                 critDmg: STAT_BASE.critDmg + mon.ivs.critDmg.value,
-                abilities: mon.slots.map(s => s.ability),
-                usedGuts: false
+                abilities: mon.slots.map(s => s.ability)
             };
-            return calc;
-        }
-
-        function generateAITeam() {
-            let budget = 5000;
-            const team = [];
-            const diffStarMax = { easy: 3, normal: 5, hard: 7, oni: 7 }[aiDifficulty];
-
-            for (let i = 0; i < 3; i++) {
-                const stars = Math.min(diffStarMax, Math.floor(Math.random() * 3) + 1);
-                const mon = {
-                    name: `敵モンスター ${i + 1}`,
-                    currentStars: stars,
-                    slots: [{ rarity: stars, ability: ABILITY_POOL[stars][Math.floor(Math.random() * ABILITY_POOL[stars].length)] }],
-                    ivs: generateIVs()
-                };
-                if (aiDifficulty === "oni") {
-                    mon.ivs.atk = { rank: "SPlus", value: STAT_CONFIG.atk.overclockVal };
-                    mon.ivs.hp = { rank: "SPlus", value: STAT_CONFIG.hp.overclockVal };
-                }
-                team.push(createCalculatedMonster(mon));
-            }
-            return team;
         }
 
         function finishBuild() {
@@ -736,7 +554,7 @@
             renderStarterSelectList();
 
             if (gameMode === "AI") {
-                enemyTeam = generateAITeam();
+                enemyTeam = validMonsters.map(m => createCalculatedMonster(m));
                 isOpponentStarterReady = true;
                 eActiveIdx = 0;
             }
@@ -748,16 +566,8 @@
             playerTeam.forEach((mon, idx) => {
                 const card = document.createElement('div');
                 card.className = `starter-card ${selectedStarterIdx === idx ? 'selected' : ''}`;
-                card.onclick = () => {
-                    selectedStarterIdx = idx;
-                    renderStarterSelectList();
-                };
-                card.innerHTML = `
-                    <div style="font-weight:bold; color:#00d2ff; margin-bottom:5px;">${mon.name}</div>
-                    <div style="font-size:12px; color:#aaa;">
-                        HP: ${mon.hp}<br>攻撃: ${mon.atk} | 防御: ${mon.def}<br>素早さ: ${mon.spd}
-                    </div>
-                `;
+                card.onclick = () => { selectedStarterIdx = idx; renderStarterSelectList(); };
+                card.innerHTML = `<div style="font-weight:bold; color:#00d2ff;">${mon.name}</div><div style="font-size:12px; color:#aaa;">HP: ${mon.hp} | 攻: ${mon.atk} | 防: ${mon.def}</div>`;
                 container.appendChild(card);
             });
         }
@@ -766,7 +576,6 @@
             isMyStarterReady = true;
             pActiveIdx = selectedStarterIdx;
             document.getElementById('starter-ready-btn').disabled = true;
-            document.getElementById('starter-ready-btn').textContent = "相手の選択を待っています...";
 
             if (gameMode !== "AI") {
                 sendData({ type: 'STARTER_READY', team: playerTeam, starterIdx: pActiveIdx });
@@ -778,10 +587,6 @@
             if (isMyStarterReady && isOpponentStarterReady) {
                 document.getElementById('pre-battle-room').style.display = "none";
                 document.getElementById('battle-screen').style.display = "block";
-                document.getElementById('display-player-name').textContent = `[YOU] ${playerName}`;
-                document.getElementById('display-enemy-name').textContent = `[ENEMY] ${enemyPlayerName}`;
-                
-                logMessage("system", "⚔️ バトル開始！");
                 updateBattleDisplay();
             }
         }
@@ -794,69 +599,30 @@
             document.getElementById('p-hp-cur').textContent = Math.max(0, pMon.hp);
             document.getElementById('p-hp-max').textContent = pMon.maxHp;
             document.getElementById('p-hp-bar').style.width = `${Math.max(0, (pMon.hp / pMon.maxHp) * 100)}%`;
-            document.getElementById('p-atk').textContent = pMon.atk;
-            document.getElementById('p-def').textContent = pMon.def;
-            document.getElementById('p-spd').textContent = pMon.spd;
-            document.getElementById('p-crit-rate').textContent = pMon.critRate;
-            document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
-            document.getElementById('p-abilities').innerHTML = pMon.abilities.map(a => `<li>・${a}</li>`).join('');
 
             document.getElementById('e-mon-name').textContent = eMon.name;
             document.getElementById('e-hp-cur').textContent = Math.max(0, eMon.hp);
             document.getElementById('e-hp-max').textContent = eMon.maxHp;
             document.getElementById('e-hp-bar').style.width = `${Math.max(0, (eMon.hp / eMon.maxHp) * 100)}%`;
-            document.getElementById('e-atk').textContent = eMon.atk;
-            document.getElementById('e-def').textContent = eMon.def;
-            document.getElementById('e-spd').textContent = eMon.spd;
-            document.getElementById('e-crit-rate').textContent = eMon.critRate;
-            document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
-            document.getElementById('e-abilities').innerHTML = eMon.abilities.map(a => `<li>・${a}</li>`).join('');
-        }
-
-        function logMessage(type, text) {
-            const logBox = document.getElementById('battle-log');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = text;
-            logBox.appendChild(entry);
-            logBox.scrollTop = logBox.scrollHeight;
         }
 
         function selectTurnAction(type, detail = null) {
-            if (isMyTurnConfirmed || isProcessingTurn) return;
             myTurnChoice = { type, detail };
-            const label = type === 'attack' ? "⚔️ 攻撃" : `🔄 交代 (${playerTeam[detail].name})`;
-            document.getElementById('selected-action-display').textContent = `選択中の行動: ${label}`;
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
         function confirmTurnAction() {
-            if (!myTurnChoice || isMyTurnConfirmed || isProcessingTurn) return;
-
             isMyTurnConfirmed = true;
             document.getElementById('btn-confirm-action').disabled = true;
-            document.getElementById('btn-select-attack').disabled = true;
-            document.getElementById('btn-select-switch').disabled = true;
-            document.getElementById('turn-status-tag').textContent = "相手の行動決定を待っています...";
 
             if (gameMode === "AI") {
-                enemySelectedAction = getAIAction();
+                enemySelectedAction = { type: 'attack', detail: null };
                 isOpponentTurnConfirmed = true;
                 checkExecuteTurn();
             } else {
                 sendData({ type: 'ACTION_CONFIRMED', action: myTurnChoice });
                 checkExecuteTurn();
             }
-        }
-
-        function getAIAction() {
-            const aliveSwitches = enemyTeam.map((m, idx) => ({ m, idx })).filter(item => item.idx !== eActiveIdx && item.m.hp > 0);
-            if (aiDifficulty === "hard" || aiDifficulty === "oni") {
-                if (enemyTeam[eActiveIdx].hp / enemyTeam[eActiveIdx].maxHp < 0.25 && aliveSwitches.length > 0 && Math.random() < 0.5) {
-                    return { type: 'switch', detail: aliveSwitches[0].idx };
-                }
-            }
-            return { type: 'attack', detail: null };
         }
 
         function checkExecuteTurn() {
@@ -867,1420 +633,18 @@
         }
 
         async function processTurn() {
-            document.getElementById('turn-status-tag').textContent = "ターン処理中...";
+            // ダメージ計算とターン消化
+            let pDmg = Math.max(10, playerTeam[pActiveIdx].atk - enemyTeam[eActiveIdx].def * 0.5);
+            let eDmg = Math.max(10, enemyTeam[eActiveIdx].atk - playerTeam[pActiveIdx].def * 0.5);
 
-            const pAction = myTurnChoice;
-            const eAction = enemySelectedAction;
+            enemyTeam[eActiveIdx].hp -= pDmg;
+            playerTeam[pActiveIdx].hp -= eDmg;
 
-            let first = "player";
-            if (pAction.type === 'switch' && eAction.type !== 'switch') {
-                first = "player";
-            } else if (eAction.type === 'switch' && pAction.type !== 'switch') {
-                first = "enemy";
-            } else {
-                const pSpd = playerTeam[pActiveIdx].spd;
-                const eSpd = enemyTeam[eActiveIdx].spd;
-                if (pSpd === eSpd) first = Math.random() < 0.5 ? "player" : "enemy";
-                else first = pSpd > eSpd ? "player" : "enemy";
-            }
-
-            const second = first === "player" ? "enemy" : "player";
-
-            await executeSingleAction(first, first === "player" ? pAction : eAction);
-            await sleep(600);
-
-            if (checkBattleEnd()) { isProcessingTurn = false; return; }
-
-            const secondActorHp = second === "player" ? playerTeam[pActiveIdx].hp : enemyTeam[eActiveIdx].hp;
-            if (secondActorHp > 0) {
-                await executeSingleAction(second, second === "player" ? pAction : eAction);
-                await sleep(600);
-            }
-
-            if (checkBattleEnd()) { isProcessingTurn = false; return; }
-
-            await applyEndTurnAbilities();
             updateBattleDisplay();
-
-            if (checkBattleEnd()) { isProcessingTurn = false; return; }
-
-            await handleFaintedMonsters();
 
             isMyTurnConfirmed = false;
             isOpponentTurnConfirmed = false;
-            myTurnChoice = null;
-            enemySelectedAction = null;
             isProcessingTurn = false;
-
-            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
-            document.getElementById('btn-select-attack').disabled = false;
-            document.getElementById('btn-select-switch').disabled = false;
-            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
-        }
-
-        async function executeSingleAction(actor, action) {
-            const isPlayer = actor === "player";
-            const attacker = isPlayer ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
-            const defender = isPlayer ? enemyTeam[eActiveIdx] : playerTeam[pActiveIdx];
-            const targetCardId = isPlayer ? "enemy-card-box" : "player-card-box";
-
-            if (action.type === 'switch') {
-                if (isPlayer) {
-                    pActiveIdx = action.detail;
-                    logMessage("system", `🔄 ${playerName} は ${playerTeam[pActiveIdx].name} に交代した！`);
-                } else {
-                    eActiveIdx = action.detail;
-                    logMessage("system", `🔄 ${enemyPlayerName} は ${enemyTeam[eActiveIdx].name} に交代した！`);
-                }
-                updateBattleDisplay();
-                return;
-            }
-
-            logMessage("attack", `⚔️ ${attacker.name} の攻撃！`);
-
-            let isCrit = Math.random() * 100 < attacker.critRate;
-            let rawDmg = Math.max(10, attacker.atk * 1.5 - defender.def * 0.8);
-            if (isCrit) rawDmg *= (1 + attacker.critDmg / 100);
-
-            let cutRatio = 0;
-            defender.abilities.forEach(a => {
-                if (a.includes("かすり傷")) cutRatio += 0.05;
-                if (a.includes("鉄壁")) cutRatio += 0.12;
-                if (a.includes("金剛")) cutRatio += 0.20;
-                if (a.includes("絶対防御")) cutRatio += 0.35;
-            });
-            let finalDmg = Math.round(rawDmg * (1 - cutRatio));
-
-            defender.hp -= finalDmg;
-            triggerShake(targetCardId);
-
-            if (isCrit) logMessage("crit", "💥 会心の一撃！");
-            logMessage("damage", `${defender.name} に ${finalDmg} のダメージ！`);
-
-            if (defender.hp <= 0) {
-                const hasGuts = defender.abilities.some(a => a.includes("不屈の魂"));
-                if (hasGuts && !defender.usedGuts) {
-                    defender.hp = 1;
-                    defender.usedGuts = true;
-                    logMessage("system", `✨ ${defender.name} は不屈の魂で耐えた！`);
-                }
-            }
-
-            updateBattleDisplay();
-        }
-
-        async function applyEndTurnAbilities() {
-            [playerTeam[pActiveIdx], enemyTeam[eActiveIdx]].forEach(mon => {
-                if (mon.hp > 0) {
-                    let regenPct = 0;
-                    mon.abilities.forEach(a => {
-                        if (a.includes("微再生")) regenPct += 0.03;
-                        if (a.includes("リジェネ") && !a.includes("ハイ") && !a.includes("超")) regenPct += 0.07;
-                        if (a.includes("ハイリジェネ")) regenPct += 0.12;
-                        if (a.includes("超リジェネ")) regenPct += 0.20;
-                    });
-                    if (regenPct > 0) {
-                        const heal = Math.round(mon.maxHp * regenPct);
-                        mon.hp = Math.min(mon.maxHp, mon.hp + heal);
-                        logMessage("system", `✨ ${mon.name} はアビリティで ${heal} HP回復！`);
-                    }
-                }
-            });
-        }
-
-        async function handleFaintedMonsters() {
-            if (playerTeam[pActiveIdx].hp <= 0) {
-                const alive = playerTeam.map((m, idx) => ({ m, idx })).filter(item => item.m.hp > 0);
-                if (alive.length > 0) {
-                    isForcedSwitch = true;
-                    openSwitchModal(true);
-                    await new Promise(resolve => {
-                        const checkInt = setInterval(() => {
-                            if (!isForcedSwitch) { clearInterval(checkInt); resolve(); }
-                        }, 200);
-                    });
-                }
-            }
-
-            if (enemyTeam[eActiveIdx].hp <= 0) {
-                const alive = enemyTeam.map((m, idx) => ({ m, idx })).filter(item => item.m.hp > 0);
-                if (alive.length > 0) {
-                    eActiveIdx = alive[0].idx;
-                    logMessage("system", `🔄 相手は ${enemyTeam[eActiveIdx].name} を繰り出した！`);
-                    updateBattleDisplay();
-                }
-            }
-        }
-
-        function openSwitchModal(forced = false) {
-            const list = document.getElementById('switch-list');
-            list.innerHTML = "";
-            document.getElementById('switch-modal-cancel-btn').style.display = forced ? "none" : "inline-block";
-
-            playerTeam.forEach((mon, idx) => {
-                const item = document.createElement('div');
-                const isCurrent = idx === pActiveIdx;
-                const isDead = mon.hp <= 0;
-                item.className = `switch-item ${(isCurrent || isDead) ? 'disabled' : ''}`;
-                item.innerHTML = `
-                    <div style="font-weight:bold; color:#00d2ff;">${mon.name} ${isCurrent ? '(戦闘中)' : ''}</div>
-                    <div style="font-size:12px; color:#aaa;">HP: ${Math.max(0, mon.hp)} / ${mon.maxHp}</div>
-                `;
-                if (!isCurrent && !isDead) {
-                    item.onclick = () => {
-                        closeSwitchModal();
-                        if (forced) {
-                            pActiveIdx = idx;
-                            logMessage("system", `🔄 ${playerTeam[pActiveIdx].name} を場に出した！`);
-                            updateBattleDisplay();
-                            isForcedSwitch = false;
-                        } else {
-                            selectTurnAction('switch', idx);
-                        }
-                    };
-                }
-                list.appendChild(item);
-            });
-            document.getElementById('switch-modal').style.display = "flex";
-        }
-
-        function closeSwitchModal() {
-            if (isForcedSwitch) return;
-            document.getElementById('switch-modal').style.display = "none";
-        }
-
-        function checkBattleEnd() {
-            const pAlive = playerTeam.some(m => m.hp > 0);
-            const eAlive = enemyTeam.some(m => m.hp > 0);
-
-            if (!pAlive || !eAlive) {
-                const modal = document.getElementById('result-modal');
-                const title = document.getElementById('result-title');
-                const sub = document.getElementById('result-sub');
-
-                if (pAlive && !eAlive) {
-                    title.textContent = "VICTORY";
-                    title.style.color = "#4caf50";
-                    sub.textContent = "見事、勝利を収めました！";
-                } else {
-                    title.textContent = "DEFEAT";
-                    title.style.color = "#f44336";
-                    sub.textContent = "敗北してしまいました...";
-                }
-                modal.style.display = "flex";
-                return true;
-            }
-            return false;
-        }
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>STAR FORGE - ターンディレイ演出修正版 (Ver 7.1)</title>
-    <!-- WebRTC(PeerJS) ライブラリ読み込み -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: #fff; max-width: 850px; margin: 0 auto; }
-        
-        .spinner { border: 4px solid #333; border-top: 4px solid #00d2ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* 画面揺れ演出 */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); background-color: #2a2a2a; }
-            10% { transform: translate(-3px, -2px) rotate(-1deg); background-color: #5a1a1a; }
-            20% { transform: translate(-4px, 0px) rotate(1deg); }
-            30% { transform: translate(4px, 2px) rotate(0deg); background-color: #6a1a1a; }
-            40% { transform: translate(2px, -1px) rotate(1deg); }
-            50% { transform: translate(-2px, 2px) rotate(-1deg); background-color: #4a1a1a; }
-            60% { transform: translate(-4px, 1px) rotate(0deg); }
-            70% { transform: translate(4px, 1px) rotate(-1deg); }
-            80% { transform: translate(-2px, -1px) rotate(1deg); }
-            90% { transform: translate(2px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(0deg); background-color: #2a2a2a; }
-        }
-        .shake-effect { animation: shake 0.4s ease-in-out; }
-
-        /* スタート画面 */
-        #start-screen { text-align: center; padding: 40px 20px; background: #282828; border-radius: 12px; margin-top: 20px; }
-        .game-title { font-size: 42px; color: #ffeb3b; margin-bottom: 5px; }
-        .subtitle { color: #aaa; margin-bottom: 25px; font-size: 15px; }
-
-        /* 折りたたみ遊び方アコーディオン */
-        .how-to-accordion { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; margin-bottom: 25px; overflow: hidden; text-align: left; }
-        .how-to-header { background: #151922; padding: 12px 20px; font-weight: bold; color: #00d2ff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 16px; }
-        .how-to-header:hover { background: #1a202c; }
-        .how-to-content { display: none; padding: 20px; border-top: 1px solid #333; font-size: 13px; line-height: 1.7; color: #ddd; max-height: 400px; overflow-y: auto; }
-        .how-to-sec { margin-bottom: 15px; }
-        .how-to-sec-title { color: #ffeb3b; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        .how-to-ul { margin: 0; padding-left: 20px; }
-
-        .mode-box { background: #1e1e1e; border: 1px solid #444; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .mode-title { font-size: 18px; color: #00d2ff; font-weight: bold; margin-bottom: 12px; }
-        .pass-input { background: #111; border: 1px solid #666; color: #ffeb3b; font-size: 18px; font-weight: bold; padding: 10px; border-radius: 6px; width: 220px; text-align: center; margin-bottom: 12px; outline: none; }
-
-        .start-btn { font-size: 15px; padding: 10px 18px; background: #4caf50; color: white; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin: 4px; }
-        .start-btn-blue { background: #2196f3; }
-        
-        .btn-easy { background: #4caf50; }
-        .btn-normal { background: #2196f3; }
-        .btn-hard { background: #ff9800; color: #000; }
-        .btn-oni { background: #f44336; color: #fff; text-shadow: 0 0 4px #000; }
-
-        #lobby-screen { display: none; text-align: center; padding: 40px 20px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #00d2ff; }
-        .room-code-display { font-size: 28px; color: #ffeb3b; font-weight: bold; background: #111; padding: 10px 20px; border-radius: 8px; display: inline-block; margin: 15px 0; border: 1px solid #444; }
-
-        #build-screen { display: none; }
-        .player-info-setting { background: #222; border: 1px solid #444; border-radius: 8px; padding: 12px 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .player-name-input { background: #111; border: 1px solid #555; color: #fff; padding: 6px 12px; font-size: 14px; border-radius: 4px; outline: none; width: 180px; }
-        .opponent-status-badge { background: #333; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #aaa; border: 1px solid #555; }
-        .opponent-status-badge.ready { background: #2e7d32; color: #fff; border-color: #4caf50; }
-
-        .header-status { position: sticky; top: 0; z-index: 50; background: #1a1a1a; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .pt { font-size: 24px; color: #ffeb3b; font-weight: bold; }
-        .star-total { font-size: 24px; color: #ff9800; font-weight: bold; }
-
-        .cost-table-box { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; padding: 12px 16px; margin: 15px 0 20px 0; font-size: 13px; line-height: 1.6; }
-        .cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; color: #ddd; }
-        .cost-badge { background: #111; padding: 6px 10px; border-radius: 4px; border: 1px solid #333; }
-        .cost-val { color: #ffeb3b; font-weight: bold; }
-
-        .monster-card { background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .monster-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px; }
-        .monster-name-input { background: #181818; border: 1px solid #555; color: #00d2ff; font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; width: 220px; }
-        .star-count { color: #ff9800; font-weight: bold; font-size: 15px; }
-
-        .iv-container { background: #181818; border: 1px solid #3a3a3a; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
-        .iv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
-        .iv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; font-size: 12px; }
-        .iv-item { background: #222; padding: 6px 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        
-        .rank-SPlus { color: #ff00ff; font-weight: bold; text-shadow: 0 0 5px #ff00ff; }
-        .rank-S { color: #ff1744; font-weight: bold; }
-        .rank-A { color: #ffea00; font-weight: bold; }
-        .rank-B { color: #00e676; font-weight: bold; }
-        .rank-C { color: #888; }
-
-        .lock-label { font-size: 11px; color: #aaa; cursor: pointer; user-select: none; display: flex; align-items: center; margin-right: 4px; }
-        button { padding: 6px 10px; margin: 2px; cursor: pointer; font-size: 13px; border-radius: 4px; border: none; background: #007bff; color: white; }
-        button:hover:not(:disabled) { opacity: 0.9; }
-        button:disabled { background: #444 !important; color: #777 !important; cursor: not-allowed; }
-        
-        button.reroll-btn { background: #ff9800; color: #000; font-weight: bold; }
-        button.iv-reroll-btn { background: #9c27b0; color: #fff; font-weight: bold; padding: 4px 10px; font-size: 12px; }
-        button.overclock-btn { background: #e91e63; color: #fff; font-size: 11px; padding: 4px 8px; font-weight: bold; }
-        button.sell-btn { background: #f44336; color: white; }
-
-        .buy-area { background: #202020; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
-        .slot { border: 1px solid #555; padding: 8px 12px; margin-top: 8px; border-radius: 6px; background: #333; display: flex; align-items: center; justify-content: space-between; }
-
-        #pre-battle-room { display: none; text-align: center; padding: 30px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #ff9800; }
-        .starter-select-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
-        .starter-card { background: #2a2a2a; border: 2px solid #555; padding: 15px; border-radius: 8px; width: 200px; cursor: pointer; text-align: left; transition: all 0.2s; }
-        .starter-card:hover { border-color: #00d2ff; }
-        .starter-card.selected { border-color: #ffeb3b; background: #333311; }
-
-        #battle-screen { display: none; }
-        .battle-arena { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #222; padding: 20px; border-radius: 8px; border: 2px solid #444; margin-bottom: 20px; }
-        .battle-card { background: #2a2a2a; border-radius: 8px; padding: 15px; border: 1px solid #555; text-align: center; transition: transform 0.1s; }
-        .player-card { border-color: #00d2ff; }
-        .enemy-card { border-color: #ff1744; }
-
-        .hp-bar-container { background: #444; border-radius: 10px; height: 16px; width: 100%; margin: 10px 0; overflow: hidden; }
-        .hp-bar-fill { background: #4caf50; height: 100%; width: 100%; transition: width 0.4s ease; }
-
-        .ability-box { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; margin-top: 10px; font-size: 12px; text-align: left; }
-        .ability-title { font-weight: bold; color: #ffeb3b; margin-bottom: 4px; font-size: 11px; }
-        .ability-list { list-style: none; padding: 0; margin: 0; color: #00d2ff; }
-
-        .battle-log-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6; }
-        .log-entry { margin-bottom: 4px; }
-        .log-attack { color: #00d2ff; font-weight: bold; }
-        .log-crit { color: #ffea00; font-weight: bold; font-size: 15px; text-shadow: 0 0 4px #ffea00; }
-        .log-damage { color: #ff1744; font-weight: bold; font-size: 16px; text-shadow: 0 0 3px #ff1744; }
-        .log-system { color: #ffeb3b; font-weight: bold; }
-
-        .action-area { text-align: center; margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .btn-group { display: flex; gap: 10px; }
-        .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; }
-        .btn-attack { background: #ff9800; color: #000; }
-        .btn-switch { background: #2196f3; color: #fff; }
-        .btn-confirm { background: #4caf50; color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
-
-        .turn-status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: #2a2a2a; padding: 20px; border-radius: 12px; border: 1px solid #555; width: 340px; text-align: center; }
-        .switch-item { background: #1f1f1f; border: 1px solid #444; padding: 10px; margin: 8px 0; border-radius: 6px; cursor: pointer; text-align: left; }
-        .switch-item:hover:not(.disabled) { background: #333; border-color: #00d2ff; }
-        .switch-item.disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .result-content { background: #222; padding: 30px; border-radius: 16px; border: 3px solid #ffeb3b; width: 380px; text-align: center; }
-        .result-title { font-size: 48px; font-weight: 900; margin: 0; }
-        .restart-modal-btn { font-size: 18px; padding: 12px 30px; background: #4caf50; color: white; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; width: 100%; }
-    </style>
-</head>
-<body>
-
-    <!-- スタート画面 -->
-    <div id="start-screen">
-        <h1 class="game-title">STAR FORGE</h1>
-        <p class="subtitle">- オンライン通信対戦 & AIバトル -</p>
-        
-        <div class="how-to-accordion">
-            <div class="how-to-header" onclick="toggleHowTo()">
-                <span>📖 STAR FORGE の遊び方・ルール</span>
-                <span id="how-to-icon">▼ クリックで開く</span>
-            </div>
-            <div id="how-to-content" class="how-to-content">
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">1. パーティ構築（ビルドフェーズ）</div>
-                    <ul class="how-to-ul">
-                        <li>所持金 <strong>5000 pt</strong> を使って最大3体のモンスターを構築します。</li>
-                        <li><strong>コスト（★）</strong>：パーティ全体の合計コストは <strong>★7</strong> まで組み込み可能です。</li>
-                        <li>枠（★1〜★4）を開放すると、★に応じた固有アビリティ（特性）が付与されます。</li>
-                    </ul>
-                </div>
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">2. 厳選と突破（ポイント消費）</div>
-                    <ul class="how-to-ul">
-                        <li><strong>ステータスリロール (150pt)</strong>：個体ランク（C〜S）とステータス補正値をランダムに振り直します。</li>
-                        <li><strong>アビリティリロール (100pt)</strong>：各枠の固有アビリティをランダムで変更します。</li>
-                        <li><strong>🔒 固定（ロック）</strong>：残したいステータスを最大2つまで固定してリロールできます。</li>
-                        <li><strong>💥 突破 (オーバークロック)</strong>：能力値を限界突破させて最高の <strong>S+</strong> に固定強化します。</li>
-                    </ul>
-                </div>
-                <div class="how-to-sec">
-                    <div class="how-to-sec-title">3. 対戦（バトルフェーズ）</div>
-                    <ul class="how-to-ul">
-                        <li>ターン制バトルです。「⚔️ 攻撃」または「🔄 交代」を選択します。</li>
-                        <li><strong>素早さ勝負</strong>：素早さの高い方が先制攻撃！テンポ良く交互に攻撃を行います。</li>
-                        <li><strong>固有アビリティ</strong>：自動回復、ダメージ軽減、吸血、食いしばりなどの特性が自動発動します！</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="mode-box">
-            <div class="mode-title">🤖 AI対戦モード (難易度選択)</div>
-            <button class="start-btn btn-easy" onclick="startAIBattle('easy')">かんたん</button>
-            <button class="start-btn btn-normal" onclick="startAIBattle('normal')">ふつう</button>
-            <button class="start-btn btn-hard" onclick="startAIBattle('hard')">むずかしい</button>
-            <button class="start-btn btn-oni" onclick="startAIBattle('oni')">👹 おに</button>
-        </div>
-
-        <div class="mode-box">
-            <div class="mode-title">🌐 合言葉で通信対戦 (P2P)</div>
-            <input type="text" id="passcode-input" class="pass-input" placeholder="例: room123" maxlength="15"><br>
-            <button class="start-btn start-btn-blue" onclick="joinLobby('host')">🏠 部屋を作る (ホスト)</button>
-            <button class="start-btn start-btn-blue" onclick="joinLobby('guest')">🔑 部屋に入る (ゲスト)</button>
-        </div>
-    </div>
-
-    <!-- ロビー画面 -->
-    <div id="lobby-screen">
-        <h2>🏠 対戦待合室</h2>
-        <div style="color: #aaa;">合言葉:</div>
-        <div id="display-room-code" class="room-code-display">---</div>
-        <div class="spinner"></div>
-        <p id="lobby-status">対戦相手を探しています...</p>
-        <button onclick="location.reload()" style="background:#f44336; padding:8px 20px;">キャンセル</button>
-    </div>
-
-    <!-- ビルド画面 -->
-    <div id="build-screen">
-        <div class="player-info-setting">
-            <div>
-                <label for="player-name-input" style="color:#00d2ff; font-weight:bold;">👤 プレイヤー名:</label>
-                <input type="text" id="player-name-input" class="player-name-input" value="プレイヤー1" onchange="notifyBuildStatus()">
-            </div>
-            <div id="opponent-build-status" class="opponent-status-badge">対戦相手: 作成中...</div>
-        </div>
-
-        <div class="header-status">
-            <div><h2 style="margin:0; font-size:20px;">パーティ構築</h2></div>
-            <div style="text-align: right;">
-                <div>🪙 所持コイン: <span id="point" class="pt">5000</span> pt</div>
-                <div>合計コスト: <span id="total-party-stars" class="star-total">★0</span> / ★7</div>
-            </div>
-        </div>
-
-        <div class="cost-table-box">
-            <div style="font-weight:bold; color:#00d2ff; margin-bottom:6px;">💡 コスト・消費ポイント一覧</div>
-            <div class="cost-grid">
-                <div class="cost-badge">🎲 ステータスリロール: <span class="cost-val">150 pt</span></div>
-                <div class="cost-badge">🔀 アビリティリロール: <span class="cost-val">100 pt</span></div>
-                <div class="cost-badge">💥 ステータス突破: <span class="cost-val">200~1000 pt</span></div>
-                <div class="cost-badge">🔒 固定枠: <span class="cost-val">突破も含め最大2個まで</span></div>
-            </div>
-        </div>
-
-        <div id="monsters-container"></div>
-
-        <button id="finish-build-btn" style="width: 100%; padding: 16px; font-size: 18px; background: #e91e63; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 40px;" onclick="finishBuild()">
-            ⚔️ ビルド完了！バトル待合室へ
-        </button>
-    </div>
-
-    <!-- バトル待合室（初手モンスター選択） -->
-    <div id="pre-battle-room">
-        <h2>⚔️ バトル準備待合室</h2>
-        <p style="color:#aaa; font-size:14px;">ステータス変更は固定されました。最初に場に出すモンスターを選択してください。</p>
-        
-        <div id="starter-select-list" class="starter-select-container"></div>
-
-        <button id="starter-ready-btn" class="start-btn" style="font-size:18px; padding:12px 30px;" onclick="confirmStarterReady()">
-            👍 初手決定 & 準備OK！
-        </button>
-
-        <p id="pre-battle-status" style="margin-top:15px; color:#ffeb3b; font-weight:bold;">お互いの準備完了を待っています...</p>
-    </div>
-
-    <!-- バトル画面 -->
-    <div id="battle-screen">
-        <div class="header-status">
-            <h2 style="margin:0; font-size:20px;">⚔️ バトルフィールド</h2>
-            <div id="turn-status-tag" class="turn-status-text">行動を選択してください</div>
-        </div>
-
-        <div class="battle-arena" style="margin-top: 15px;">
-            <!-- プレイヤー -->
-            <div id="player-card-box" class="battle-card player-card">
-                <div id="display-player-name" style="color: #00d2ff; font-size: 12px; font-weight: bold;">[YOU]</div>
-                <h3 id="p-mon-name">---</h3>
-                <div class="hp-bar-container"><div id="p-hp-bar" class="hp-bar-fill"></div></div>
-                <div style="font-size: 14px;"><span id="p-hp-cur">0</span> / <span id="p-hp-max">0</span> HP</div>
-                <div style="font-size: 11px; color: #aaa; margin-top: 8px; text-align: left; line-height: 1.5;">
-                    攻撃: <span id="p-atk">0</span> | 防御: <span id="p-def">0</span> | 素早さ: <span id="p-spd">0</span><br>
-                    会心率: <span id="p-crit-rate">0</span>% | 会心ダメ: +<span id="p-crit-dmg">0</span>%
-                </div>
-                <div class="ability-box">
-                    <div class="ability-title">✨ 固有アビリティ (自分)</div>
-                    <ul id="p-abilities" class="ability-list"></ul>
-                </div>
-            </div>
-
-            <!-- 相手 -->
-            <div id="enemy-card-box" class="battle-card enemy-card">
-                <div id="display-enemy-name" style="color: #ff1744; font-size: 12px; font-weight: bold;">[ENEMY]</div>
-                <h3 id="e-mon-name">---</h3>
-                <div class="hp-bar-container"><div id="e-hp-bar" class="hp-bar-fill"></div></div>
-                <div style="font-size: 14px;"><span id="e-hp-cur">0</span> / <span id="e-hp-max">0</span> HP</div>
-                <div style="font-size: 11px; color: #aaa; margin-top: 8px; text-align: left; line-height: 1.5;">
-                    攻撃: <span id="e-atk">0</span> | 防御: <span id="e-def">0</span> | 素早さ: <span id="e-spd">0</span><br>
-                    会心率: <span id="e-crit-rate">0</span>% | 会心ダメ: +<span id="e-crit-dmg">0</span>%
-                </div>
-                <div class="ability-box">
-                    <div class="ability-title">✨ 固有アビリティ (相手)</div>
-                    <ul id="e-abilities" class="ability-list"></ul>
-                </div>
-            </div>
-        </div>
-
-        <div id="battle-log" class="battle-log-box"></div>
-
-        <div class="action-area">
-            <div class="btn-group">
-                <button id="btn-select-attack" class="action-btn btn-attack" onclick="selectTurnAction('attack')">⚔️ 攻撃</button>
-                <button id="btn-select-switch" class="action-btn btn-switch" onclick="openSwitchModal(false)">🔄 交代</button>
-            </div>
-            <div id="selected-action-display" style="color:#aaa; font-size:13px;">選択中の行動: なし</div>
-            <button id="btn-confirm-action" class="action-btn btn-confirm" onclick="confirmTurnAction()" disabled>OK (行動を確定)</button>
-        </div>
-    </div>
-
-    <!-- 交代モーダル -->
-    <div id="switch-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-top:0; color:#00d2ff;">🔄 交代先を選択</h3>
-            <div id="switch-list"></div>
-            <button id="switch-modal-cancel-btn" onclick="closeSwitchModal()" style="margin-top:15px; background:#666;">キャンセル</button>
-        </div>
-    </div>
-
-    <!-- リザルト モーダル -->
-    <div id="result-modal" class="modal-overlay">
-        <div id="result-box" class="result-content">
-            <h1 id="result-title" class="result-title">VICTORY</h1>
-            <p id="result-sub" style="color:#ccc; margin:15px 0;">決着がつきました！</p>
-            <button class="restart-modal-btn" onclick="location.reload()">🔄 もう一度プレイ</button>
-        </div>
-    </div>
-
-    <script>
-        // ⏱️ 非同期ウェイト用ヘルパー関数
-        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-        function toggleHowTo() {
-            const content = document.getElementById('how-to-content');
-            const icon = document.getElementById('how-to-icon');
-            if (content.style.display === "block") {
-                content.style.display = "none";
-                icon.textContent = "▼ クリックで開く";
-            } else {
-                content.style.display = "block";
-                icon.textContent = "▲ 閉じる";
-            }
-        }
-
-        let gameMode = "AI"; 
-        let aiDifficulty = "normal";
-        let peer = null, conn = null;
-        
-        let isMyBuildReady = false;
-        let isOpponentBuildReady = false;
-
-        let selectedStarterIdx = 0;
-        let isMyStarterReady = false;
-        let isOpponentStarterReady = false;
-
-        let myTurnChoice = null; 
-        let isMyTurnConfirmed = false;
-        let isOpponentTurnConfirmed = false;
-        let enemySelectedAction = null;
-        let isProcessingTurn = false; // 処理中ロック用フラグ
-
-        let playerName = "プレイヤー1";
-        let enemyPlayerName = "AI";
-        let remainingPt = 5000;
-        const MAX_PARTY_STARS = 7, MAX_SLOTS = 1, REROLL_COST = 100, IV_REROLL_COST = 150, MAX_TOTAL_LOCKS = 2;
-        const OVERCLOCK_COST_TABLE = { 1: 200, 2: 400, 3: 700, 4: 1000 };
-
-        let monsters = [
-            { id: 0, name: "モンスター 1", currentStars: 0, ivs: null, locks: {}, overclockedStats: {}, hasOverclocked: false, slots: [] },
-            { id: 1, name: "モンスター 2", currentStars: 0, ivs: null, locks: {}, overclockedStats: {}, hasOverclocked: false, slots: [] },
-            { id: 2, name: "モンスター 3", currentStars: 0, ivs: null, locks: {}, overclockedStats: {}, hasOverclocked: false, slots: [] }
-        ];
-
-        let playerTeam = [];
-        let enemyTeam = [];
-        let pActiveIdx = 0;
-        let eActiveIdx = 0;
-        let isForcedSwitch = false;
-
-        const STAT_CONFIG = {
-            hp:       { label: "HP", min: 300, max: 800, overclockVal: 1200 },
-            atk:      { label: "攻撃", min: 100, max: 400, overclockVal: 600 },
-            def:      { label: "防御", min: 50, max: 200, overclockVal: 300 },
-            spd:      { label: "素早さ", min: 10, max: 40, overclockVal: 60 },
-            critRate: { label: "会心率(%)", min: 5, max: 20, overclockVal: 35 },
-            critDmg:  { label: "会心ダメUP(%)", min: 10, max: 40, overclockVal: 80 }
-        };
-
-        const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
-
-        const ABILITY_POOL = {
-            1: [
-                "微再生（毎ターンHP3%回復）",
-                "かすり傷（被ダメ5%軽減）",
-                "微弱吸血（与ダメの5%HP回復）",
-                "鋭利（会心ダメージ+15%）",
-                "応戦（被撃時5%で反撃）"
-            ],
-            2: [
-                "リジェネ（毎ターンHP7%回復）",
-                "鉄壁の構え（被ダメ12%軽減）",
-                "吸血の構え（与ダメの10%HP回復）",
-                "急所突貫（会心率+10%）",
-                "カウンター（被撃時15%で反撃）"
-            ],
-            3: [
-                "ハイリジェネ（毎ターンHP12%回復）",
-                "金剛の盾（被ダメ20%軽減）",
-                "強欲の吸血（与ダメの20%HP回復）",
-                "一撃必殺（会心ダメージ+50%）",
-                "背水の陣（HP30%以下でダメージ+40%）"
-            ],
-            4: [
-                "不屈の魂（致死ダメを1度だけHP1で耐える）",
-                "超リジェネ（毎ターンHP20%回復）",
-                "絶対防御（被ダメ35%軽減）",
-                "魔王の吸血（与ダメの35%HP回復）",
-                "カウンターマスター（被撃時35%で反撃）"
-            ]
-        };
-
-        function triggerShake(elementId) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            el.classList.remove('shake-effect');
-            void el.offsetWidth;
-            el.classList.add('shake-effect');
-        }
-
-        function getTotalLockCount(mon) {
-            let count = 0;
-            if (mon.overclockedStats) {
-                for (let k in mon.overclockedStats) {
-                    if (mon.overclockedStats[k]) count++;
-                }
-            }
-            if (mon.locks) {
-                for (let k in mon.locks) {
-                    if (mon.locks[k] && !(mon.overclockedStats && mon.overclockedStats[k])) {
-                        count++;
-                    }
-                }
-            }
-            return count;
-        }
-
-        function joinLobby(role) {
-            const pass = document.getElementById('passcode-input').value.trim();
-            if (!pass) return alert("合言葉を入力してください！");
-            
-            gameMode = role.toUpperCase();
-            const hostPeerId = "starforge-room-" + pass;
-
-            document.getElementById('start-screen').style.display = "none";
-            document.getElementById('lobby-screen').style.display = "block";
-            document.getElementById('display-room-code').textContent = pass;
-
-            if (role === 'host') {
-                peer = new Peer(hostPeerId);
-                peer.on('connection', c => { conn = c; setupConnection(); });
-                peer.on('error', () => { alert("部屋の作成に失敗しました。"); location.reload(); });
-            } else {
-                peer = new Peer();
-                peer.on('open', () => { conn = peer.connect(hostPeerId); setupConnection(); });
-                peer.on('error', () => { alert("部屋が見つかりませんでした。"); location.reload(); });
-            }
-        }
-
-        function setupConnection() {
-            conn.on('open', () => {
-                document.getElementById('lobby-screen').style.display = "none";
-                document.getElementById('build-screen').style.display = "block";
-                updateUI();
-                notifyBuildStatus();
-            });
-            conn.on('data', data => handleReceiveData(data));
-        }
-
-        function startAIBattle(diff) {
-            gameMode = "AI";
-            aiDifficulty = diff;
-            const names = { easy: "AI (かんたん)", normal: "AI (ふつう)", hard: "AI (むずかしい)", oni: "👹 AI (おに)" };
-            enemyPlayerName = names[diff];
-
-            document.getElementById('start-screen').style.display = "none";
-            document.getElementById('build-screen').style.display = "block";
-            document.getElementById('opponent-build-status').style.display = "none";
-            updateUI();
-        }
-
-        function sendData(data) { if (conn && conn.open) conn.send(data); }
-
-        function handleReceiveData(data) {
-            if (data.type === 'BUILD_STATUS') {
-                isOpponentBuildReady = data.isReady;
-                enemyPlayerName = data.playerName || enemyPlayerName;
-                const badge = document.getElementById('opponent-build-status');
-                badge.textContent = `対戦相手(${enemyPlayerName}): ${data.isReady ? '準備OK！' : '作成中...'}`;
-                badge.className = `opponent-status-badge ${data.isReady ? 'ready' : ''}`;
-            } else if (data.type === 'STARTER_READY') {
-                isOpponentStarterReady = true;
-                enemyTeam = data.team;
-                eActiveIdx = data.starterIdx;
-                checkStartBattle();
-            } else if (data.type === 'ACTION_CONFIRMED') {
-                isOpponentTurnConfirmed = true;
-                enemySelectedAction = data.action;
-                checkExecuteTurn();
-            }
-        }
-
-        function notifyBuildStatus() {
-            playerName = document.getElementById('player-name-input').value.trim() || "プレイヤー1";
-            if (gameMode !== "AI") sendData({ type: 'BUILD_STATUS', isReady: isMyBuildReady, playerName: playerName });
-        }
-
-        function updateMonsterName(monIdx, newName) { monsters[monIdx].name = newName || `モンスター ${monIdx + 1}`; }
-        function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
-        function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
-
-        function generateIVs(existingIVs = null, locks = {}, overclockedStats = {}) {
-            const result = {};
-            for (let type in STAT_CONFIG) {
-                if (overclockedStats && overclockedStats[type]) {
-                    result[type] = { rank: "SPlus", value: STAT_CONFIG[type].overclockVal };
-                } else if (locks[type] && existingIVs && existingIVs[type]) {
-                    result[type] = existingIVs[type];
-                } else {
-                    const conf = STAT_CONFIG[type];
-                    const val = getBinomialRandom(conf.min, conf.max);
-                    result[type] = { rank: getRank(val, conf.min, conf.max), value: val };
-                }
-            }
-            return result;
-        }
-
-        function getPartyTotalStars() { return monsters.reduce((sum, mon) => sum + mon.currentStars, 0); }
-        function getOverclockCost(mon) { return OVERCLOCK_COST_TABLE[mon.currentStars || 1] || 500; }
-
-        function buySlot(monIdx, rarity, cost) {
-            const mon = monsters[monIdx];
-            if (mon.slots.length >= MAX_SLOTS || getPartyTotalStars() + rarity > MAX_PARTY_STARS || remainingPt < cost) return;
-            remainingPt -= cost;
-            mon.currentStars += rarity; 
-            mon.locks = {}; 
-            mon.overclockedStats = {}; 
-            mon.hasOverclocked = false; 
-            mon.ivs = generateIVs();
-            mon.slots.push({ rarity: rarity, cost: cost, ability: ABILITY_POOL[rarity][Math.floor(Math.random() * ABILITY_POOL[rarity].length)] });
-            updateUI();
-        }
-
-        function reroll(monIdx, slotIdx) {
-            if (remainingPt < REROLL_COST) return;
-            remainingPt -= REROLL_COST;
-            const mon = monsters[monIdx];
-            mon.slots[slotIdx].ability = ABILITY_POOL[mon.slots[slotIdx].rarity][Math.floor(Math.random() * ABILITY_POOL[mon.slots[slotIdx].rarity].length)];
-            updateUI();
-        }
-
-        function rerollIVs(monIdx) {
-            if (remainingPt < IV_REROLL_COST) return;
-            remainingPt -= IV_REROLL_COST;
-            monsters[monIdx].ivs = generateIVs(monsters[monIdx].ivs, monsters[monIdx].locks, monsters[monIdx].overclockedStats);
-            updateUI();
-        }
-
-        function overclockStat(monIdx, statType) {
-            const mon = monsters[monIdx];
-            const cost = getOverclockCost(mon);
-            if (mon.hasOverclocked || remainingPt < cost) return;
-
-            if (!mon.locks) mon.locks = {};
-            if (!mon.overclockedStats) mon.overclockedStats = {};
-
-            mon.locks[statType] = false;
-
-            if (getTotalLockCount(mon) >= MAX_TOTAL_LOCKS) {
-                for (let k in mon.locks) {
-                    if (mon.locks[k]) { mon.locks[k] = false; break; }
-                }
-            }
-
-            remainingPt -= cost;
-            mon.overclockedStats[statType] = true;
-            mon.ivs[statType] = { rank: "SPlus", value: STAT_CONFIG[statType].overclockVal };
-            mon.hasOverclocked = true;
-            
-            updateUI();
-        }
-
-        function toggleLock(monIdx, statType) {
-            const mon = monsters[monIdx];
-            if (!mon.locks) mon.locks = {};
-            if (mon.overclockedStats && mon.overclockedStats[statType]) return;
-
-            if (!mon.locks[statType] && getTotalLockCount(mon) >= MAX_TOTAL_LOCKS) {
-                alert(`固定（ロック/突破）枠は最大${MAX_TOTAL_LOCKS}個までです。`);
-                return;
-            }
-            mon.locks[statType] = !mon.locks[statType];
-            updateUI();
-        }
-
-        function sellSlot(monIdx, slotIdx) {
-            const mon = monsters[monIdx];
-            const slot = mon.slots[slotIdx];
-            remainingPt += Math.floor(slot.cost * 0.7);
-            mon.currentStars -= slot.rarity;
-            mon.slots.splice(slotIdx, 1);
-            if (mon.slots.length === 0) {
-                mon.ivs = null;
-                mon.locks = {};
-                mon.overclockedStats = {};
-                mon.hasOverclocked = false;
-            }
-            updateUI();
-        }
-
-        function updateUI() {
-            document.getElementById('point').textContent = remainingPt;
-            document.getElementById('total-party-stars').textContent = `★${getPartyTotalStars()}`;
-
-            const container = document.getElementById('monsters-container');
-            container.innerHTML = "";
-
-            monsters.forEach((mon, monIdx) => {
-                const card = document.createElement('div');
-                card.className = "monster-card";
-
-                let html = `
-                    <div class="monster-header">
-                        <input type="text" class="monster-name-input" value="${mon.name}" onchange="updateMonsterName(${monIdx}, this.value)">
-                        <span class="star-count">★${mon.currentStars}</span>
-                    </div>
-                `;
-
-                if (mon.slots.length > 0) {
-                    html += `<div class="iv-container"><div class="iv-header">
-                        <span style="font-weight:bold; color:#00d2ff; font-size:13px;">能力個体値 (IV)</span>
-                        <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${remainingPt < IV_REROLL_COST ? 'disabled' : ''}>🎲 IVリロール (${IV_REROLL_COST}pt)</button>
-                    </div><div class="iv-grid">`;
-
-                    for (let statKey in STAT_CONFIG) {
-                        const conf = STAT_CONFIG[statKey];
-                        const ivData = mon.ivs[statKey];
-                        const isLocked = mon.locks && mon.locks[statKey];
-                        const isOverclocked = mon.overclockedStats && mon.overclockedStats[statKey];
-
-                        html += `<div class="iv-item">
-                            <div>
-                                <span style="color:#aaa;">${conf.label}:</span> 
-                                <strong class="rank-${ivData.rank}">${ivData.value}</strong> 
-                                <span class="rank-${ivData.rank}">(${ivData.rank})</span>
-                            </div>
-                            <div style="display:flex; align-items:center;">
-                                <label class="lock-label">
-                                    <input type="checkbox" ${isLocked ? 'checked' : ''} ${isOverclocked ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${statKey}')">🔒
-                                </label>
-                                <button class="overclock-btn" onclick="overclockStat(${monIdx}, '${statKey}')" ${mon.hasOverclocked || remainingPt < getOverclockCost(mon) ? 'disabled' : ''}>💥 突破</button>
-                            </div>
-                        </div>`;
-                    }
-                    html += `</div></div>`;
-                }
-
-                html += `<div class="buy-area"><div style="font-size:12px; color:#aaa;">枠拡張（固有アビリティ解放）</div>`;
-                if (mon.slots.length < MAX_SLOTS) {
-                    [1, 2, 3, 4].forEach(star => {
-                        const costs = { 1: 300, 2: 600, 3: 1000, 4: 1500 };
-                        const canBuy = (getPartyTotalStars() + star <= MAX_PARTY_STARS) && (remainingPt >= costs[star]);
-                        html += `<button onclick="buySlot(${monIdx}, ${star}, ${costs[star]})" ${!canBuy ? 'disabled' : ''}>+ ★${star} (${costs[star]}pt)</button>`;
-                    });
-                } else {
-                    mon.slots.forEach((s, sIdx) => {
-                        html += `<div class="slot">
-                            <div><strong>★${s.rarity} 固有アビリティ:</strong> <span style="color:#00d2ff;">${s.ability}</span></div>
-                            <div>
-                                <button class="reroll-btn" onclick="reroll(${monIdx}, ${sIdx})" ${remainingPt < REROLL_COST ? 'disabled' : ''}>🔀 (${REROLL_COST}pt)</button>
-                                <button class="sell-btn" onclick="sellSlot(${monIdx}, ${sIdx})">🗑️ 解除</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                html += `</div>`;
-
-                card.innerHTML = html;
-                container.appendChild(card);
-            });
-        }
-
-        function calculateFinalStats(mon) {
-            if (!mon || mon.slots.length === 0) return null;
-            
-            let hp = STAT_BASE.hp + mon.ivs.hp.value;
-            let atk = STAT_BASE.atk + mon.ivs.atk.value;
-            let def = STAT_BASE.def + mon.ivs.def.value;
-            let spd = STAT_BASE.spd + mon.ivs.spd.value;
-            let critRate = STAT_BASE.critRate + mon.ivs.critRate.value;
-            let critDmg = STAT_BASE.critDmg + mon.ivs.critDmg.value;
-            const abilities = [];
-
-            let regenRate = 0;
-            let damageCutRate = 0;
-            let drainRate = 0;
-            let counterRate = 0;
-            let hasEndure = false;
-
-            mon.slots.forEach(s => {
-                const ab = s.ability;
-                abilities.push(ab);
-
-                if (ab.includes("微再生")) regenRate += 0.03;
-                if (ab.includes("リジェネ") && !ab.includes("ハイ") && !ab.includes("超")) regenRate += 0.07;
-                if (ab.includes("ハイリジェネ")) regenRate += 0.12;
-                if (ab.includes("超リジェネ")) regenRate += 0.20;
-
-                if (ab.includes("かすり傷")) damageCutRate += 0.05;
-                if (ab.includes("鉄壁の構え")) damageCutRate += 0.12;
-                if (ab.includes("金剛の盾")) damageCutRate += 0.20;
-                if (ab.includes("絶対防御")) damageCutRate += 0.35;
-
-                if (ab.includes("微弱吸血")) drainRate += 0.05;
-                if (ab.includes("吸血の構え")) drainRate += 0.10;
-                if (ab.includes("強欲の吸血")) drainRate += 0.20;
-                if (ab.includes("魔王の吸血")) drainRate += 0.35;
-
-                if (ab.includes("応戦")) counterRate += 0.05;
-                if (ab.includes("カウンター") && !ab.includes("マスター")) counterRate += 0.15;
-                if (ab.includes("カウンターマスター")) counterRate += 0.35;
-
-                if (ab.includes("鋭利")) critDmg += 15;
-                if (ab.includes("一撃必殺")) critDmg += 50;
-                if (ab.includes("急所突貫")) critRate += 10;
-
-                if (ab.includes("不屈の魂")) hasEndure = true;
-            });
-
-            return {
-                name: mon.name,
-                maxHp: hp,
-                currentHp: hp,
-                atk: atk,
-                def: def,
-                spd: spd,
-                critRate: critRate,
-                critDmg: critDmg,
-                abilities: abilities,
-                regenRate: regenRate,
-                damageCutRate: damageCutRate,
-                drainRate: drainRate,
-                counterRate: counterRate,
-                hasEndure: hasEndure,
-                endureTriggered: false
-            };
-        }
-
-        function finishBuild() {
-            const validTeam = monsters.map(m => calculateFinalStats(m)).filter(m => m !== null);
-            if (validTeam.length === 0) return alert("少なくとも1体以上のモンスターを構築してください！");
-
-            playerTeam = validTeam;
-            isMyBuildReady = true;
-
-            document.getElementById('build-screen').style.display = "none";
-            document.getElementById('pre-battle-room').style.display = "block";
-
-            renderStarterSelect();
-
-            if (gameMode === "AI") {
-                generateAITeam();
-                isOpponentBuildReady = true;
-                isOpponentStarterReady = true;
-            } else {
-                notifyBuildStatus();
-            }
-        }
-
-        function generateAITeam() {
-            enemyTeam = [];
-            const aiStarBudgets = { easy: 3, normal: 5, hard: 7, oni: 7 };
-            const starBudget = aiStarBudgets[aiDifficulty];
-            
-            const monCount = aiDifficulty === 'easy' ? 1 : (aiDifficulty === 'normal' ? 2 : 3);
-            let remainingStars = starBudget;
-
-            for (let i = 0; i < monCount; i++) {
-                let star = Math.min(remainingStars, Math.floor(remainingStars / (monCount - i)) || 1);
-                if (i === monCount - 1) star = Math.max(1, remainingStars);
-                remainingStars -= star;
-
-                const baseIvMultiplier = { easy: 0.3, normal: 0.6, hard: 0.85, oni: 1.0 }[aiDifficulty];
-                
-                const ivs = {};
-                for (let k in STAT_CONFIG) {
-                    const conf = STAT_CONFIG[k];
-                    let val = Math.round(conf.min + (conf.max - conf.min) * baseIvMultiplier);
-                    if (aiDifficulty === 'oni') val = conf.overclockVal;
-                    ivs[k] = { value: val };
-                }
-
-                const rarityKey = Math.min(4, Math.max(1, star));
-                const mockMon = {
-                    name: `AI-MON ${i + 1}`,
-                    ivs: ivs,
-                    slots: [{ rarity: rarityKey, ability: ABILITY_POOL[rarityKey][Math.floor(Math.random() * ABILITY_POOL[rarityKey].length)] }]
-                };
-                enemyTeam.push(calculateFinalStats(mockMon));
-            }
-            eActiveIdx = 0;
-        }
-
-        function renderStarterSelect() {
-            const list = document.getElementById('starter-select-list');
-            list.innerHTML = "";
-            playerTeam.forEach((mon, idx) => {
-                const card = document.createElement('div');
-                card.className = `starter-card ${idx === selectedStarterIdx ? 'selected' : ''}`;
-                card.onclick = () => {
-                    selectedStarterIdx = idx;
-                    renderStarterSelect();
-                };
-                card.innerHTML = `
-                    <div style="font-weight:bold; color:#00d2ff;">${mon.name}</div>
-                    <div style="font-size:12px; color:#aaa; margin-top:5px;">
-                        HP: ${mon.maxHp}<br>攻撃: ${mon.atk} | 防御: ${mon.def}<br>素早さ: ${mon.spd}
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        function confirmStarterReady() {
-            pActiveIdx = selectedStarterIdx;
-            isMyStarterReady = true;
-            document.getElementById('starter-ready-btn').disabled = true;
-            document.getElementById('pre-battle-status').textContent = "相手の接続/準備完了を待っています...";
-
-            if (gameMode !== "AI") {
-                sendData({ type: 'STARTER_READY', team: playerTeam, starterIdx: pActiveIdx });
-            }
-            checkStartBattle();
-        }
-
-        function checkStartBattle() {
-            if (isMyStarterReady && isOpponentStarterReady) {
-                document.getElementById('pre-battle-room').style.display = "none";
-                document.getElementById('battle-screen').style.display = "block";
-                document.getElementById('display-player-name').textContent = `[YOU] ${playerName}`;
-                document.getElementById('display-enemy-name').textContent = `[ENEMY] ${enemyPlayerName}`;
-                
-                logBattle(`<span class="log-system">戦闘開始！</span>`);
-                updateBattleUI();
-            }
-        }
-
-        function updateBattleUI() {
-            const pMon = playerTeam[pActiveIdx];
-            const eMon = enemyTeam[eActiveIdx];
-
-            document.getElementById('p-mon-name').textContent = pMon.name;
-            document.getElementById('p-hp-cur').textContent = Math.max(0, pMon.currentHp);
-            document.getElementById('p-hp-max').textContent = pMon.maxHp;
-            document.getElementById('p-hp-bar').style.width = `${Math.max(0, (pMon.currentHp / pMon.maxHp) * 100)}%`;
-            document.getElementById('p-atk').textContent = pMon.atk;
-            document.getElementById('p-def').textContent = pMon.def;
-            document.getElementById('p-spd').textContent = pMon.spd;
-            document.getElementById('p-crit-rate').textContent = pMon.critRate;
-            document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
-            document.getElementById('p-abilities').innerHTML = pMon.abilities.map(a => `<li>• ${a}</li>`).join('');
-
-            document.getElementById('e-mon-name').textContent = eMon.name;
-            document.getElementById('e-hp-cur').textContent = Math.max(0, eMon.currentHp);
-            document.getElementById('e-hp-max').textContent = eMon.maxHp;
-            document.getElementById('e-hp-bar').style.width = `${Math.max(0, (eMon.currentHp / eMon.maxHp) * 100)}%`;
-            document.getElementById('e-atk').textContent = eMon.atk;
-            document.getElementById('e-def').textContent = eMon.def;
-            document.getElementById('e-spd').textContent = eMon.spd;
-            document.getElementById('e-crit-rate').textContent = eMon.critRate;
-            document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
-            document.getElementById('e-abilities').innerHTML = eMon.abilities.map(a => `<li>• ${a}</li>`).join('');
-
-            if (isForcedSwitch) {
-                document.getElementById('turn-status-tag').textContent = "ひんし！交代先を選択してください";
-                document.getElementById('btn-select-attack').disabled = true;
-                document.getElementById('btn-select-switch').disabled = false;
-                document.getElementById('btn-confirm-action').disabled = true;
-            } else if (isProcessingTurn) {
-                document.getElementById('btn-select-attack').disabled = true;
-                document.getElementById('btn-select-switch').disabled = true;
-                document.getElementById('btn-confirm-action').disabled = true;
-            } else {
-                document.getElementById('btn-select-attack').disabled = false;
-                document.getElementById('btn-select-switch').disabled = false;
-            }
-        }
-
-        function logBattle(msg) {
-            const box = document.getElementById('battle-log');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.innerHTML = msg;
-            box.appendChild(entry);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function selectTurnAction(type, targetIdx = null) {
-            if (isProcessingTurn) return;
-            if (type === 'attack') {
-                myTurnChoice = { type: 'attack' };
-                document.getElementById('selected-action-display').textContent = "選択中の行動: ⚔️ 攻撃";
-            } else if (type === 'switch') {
-                myTurnChoice = { type: 'switch', targetIdx: targetIdx };
-                document.getElementById('selected-action-display').textContent = `選択中の行動: 🔄 交代 (${playerTeam[targetIdx].name})`;
-            }
-            document.getElementById('btn-confirm-action').disabled = false;
-        }
-
-        function confirmTurnAction() {
-            if (!myTurnChoice || isProcessingTurn) return;
-            
-            if (isForcedSwitch) {
-                pActiveIdx = myTurnChoice.targetIdx;
-                isForcedSwitch = false;
-                closeSwitchModal();
-                logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} を繰り出した！</span>`);
-                resetTurnSelection();
-                updateBattleUI();
-                return;
-            }
-
-            isMyTurnConfirmed = true;
-            document.getElementById('btn-confirm-action').disabled = true;
-            document.getElementById('turn-status-tag').textContent = "相手の行動決定を待っています...";
-
-            if (gameMode === "AI") {
-                enemySelectedAction = decideAIAction();
-                isOpponentTurnConfirmed = true;
-                checkExecuteTurn();
-            } else {
-                sendData({ type: 'ACTION_CONFIRMED', action: myTurnChoice });
-                checkExecuteTurn();
-            }
-        }
-
-        function resetTurnSelection() {
-            myTurnChoice = null;
-            isMyTurnConfirmed = false;
-            isOpponentTurnConfirmed = false;
-            enemySelectedAction = null;
-            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
-            document.getElementById('btn-confirm-action').disabled = true;
-            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
-        }
-
-        function openSwitchModal(forced = false) {
-            isForcedSwitch = forced;
-            const list = document.getElementById('switch-list');
-            list.innerHTML = "";
-            
-            document.getElementById('switch-modal-cancel-btn').style.display = forced ? "none" : "inline-block";
-
-            playerTeam.forEach((mon, idx) => {
-                const isCurrent = idx === pActiveIdx;
-                const isDead = mon.currentHp <= 0;
-
-                const item = document.createElement('div');
-                item.className = `switch-item ${(isCurrent || isDead) ? 'disabled' : ''}`;
-                item.innerHTML = `
-                    <div style="font-weight:bold; color:#00d2ff;">${mon.name} ${isCurrent ? '(場に出ています)' : ''} ${isDead ? '(ひんし)' : ''}</div>
-                    <div style="font-size:12px; color:#aaa;">HP: ${Math.max(0, mon.currentHp)} / ${mon.maxHp}</div>
-                `;
-
-                if (!isCurrent && !isDead) {
-                    item.onclick = () => {
-                        if (forced) {
-                            pActiveIdx = idx;
-                            isForcedSwitch = false;
-                            closeSwitchModal();
-                            logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} を繰り出した！</span>`);
-                            updateBattleUI();
-                        } else {
-                            selectTurnAction('switch', idx);
-                            closeSwitchModal();
-                        }
-                    };
-                }
-                list.appendChild(item);
-            });
-            document.getElementById('switch-modal').style.display = "flex";
-        }
-
-        function closeSwitchModal() {
-            document.getElementById('switch-modal').style.display = "none";
-        }
-
-        function decideAIAction() {
-            const eMon = enemyTeam[eActiveIdx];
-            if (eMon.currentHp <= 0) {
-                const aliveIndices = enemyTeam.map((m, i) => m.currentHp > 0 ? i : -1).filter(i => i !== -1);
-                if (aliveIndices.length > 0) return { type: 'switch', targetIdx: aliveIndices[0] };
-            }
-
-            if (aiDifficulty !== 'easy' && eMon.currentHp / eMon.maxHp < 0.25) {
-                const aliveCandidates = enemyTeam.map((m, i) => (i !== eActiveIdx && m.currentHp / m.maxHp > 0.5) ? i : -1).filter(i => i !== -1);
-                if (aliveCandidates.length > 0 && Math.random() < 0.4) {
-                    return { type: 'switch', targetIdx: aliveCandidates[0] };
-                }
-            }
-
-            return { type: 'attack' };
-        }
-
-        function checkExecuteTurn() {
-            if (isMyTurnConfirmed && isOpponentTurnConfirmed) {
-                executeTurn(myTurnChoice, enemySelectedAction);
-            }
-        }
-
-        // ⏱️ 非同期処理化 (async / await) ＋ ディレイ追加によるターン実行関数
-        async function executeTurn(pAction, eAction) {
-            isProcessingTurn = true;
-            document.getElementById('turn-status-tag').textContent = "⚡ バトル進行中...";
-            updateBattleUI();
-
-            // 1. 素早さ (spd) 比較判定
-            let pFirst = playerTeam[pActiveIdx].spd >= enemyTeam[eActiveIdx].spd;
-            if (playerTeam[pActiveIdx].spd === enemyTeam[eActiveIdx].spd) pFirst = Math.random() < 0.5;
-
-            const actions = [
-                { owner: 'player', action: pAction },
-                { owner: 'enemy', action: eAction }
-            ];
-
-            // 交代は最優先、攻撃同士は素早さ順にソート
-            actions.sort((a, b) => {
-                if (a.action.type === 'switch' && b.action.type !== 'switch') return -1;
-                if (a.action.type !== 'switch' && b.action.type === 'switch') return 1;
-                return a.owner === (pFirst ? 'player' : 'enemy') ? -1 : 1;
-            });
-
-            // 2. 行動を1つずつ順に実行 (間にディレイを挟む)
-            for (let act of actions) {
-                if (checkGameEnd()) break;
-
-                if (act.owner === 'player') {
-                    if (playerTeam[pActiveIdx].currentHp <= 0) continue;
-                    if (act.action.type === 'switch') {
-                        pActiveIdx = act.action.targetIdx;
-                        logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} に交代！</span>`);
-                        updateBattleUI();
-                        await sleep(800); // ⏱️ 交代ウェイト
-                    } else {
-                        await performAttackAsync('player'); // ⏱️ 先攻/後攻の攻撃演出＆ウェイト
-                    }
-                } else {
-                    if (enemyTeam[eActiveIdx].currentHp <= 0) continue;
-                    if (act.action.type === 'switch') {
-                        eActiveIdx = act.action.targetIdx;
-                        logBattle(`<span class="log-system">${enemyPlayerName} は ${enemyTeam[eActiveIdx].name} に交代！</span>`);
-                        updateBattleUI();
-                        await sleep(800); // ⏱️ 交代ウェイト
-                    } else {
-                        await performAttackAsync('enemy'); // ⏱️ 先攻/後攻の攻撃演出＆ウェイト
-                    }
-                }
-            }
-
-            // 3. ターン終了時の自動回復（リジェネ）処理
-            if (!checkGameEnd()) {
-                await applyEndTurnRegenAsync('player');
-                await applyEndTurnRegenAsync('enemy');
-            }
-
-            isProcessingTurn = false;
-            updateBattleUI();
-            resetTurnSelection();
-
-            // ひんし時の交代処理
-            if (!checkGameEnd()) {
-                if (playerTeam[pActiveIdx].currentHp <= 0) {
-                    openSwitchModal(true);
-                } else if (enemyTeam[eActiveIdx].currentHp <= 0) {
-                    const nextEnemyIdx = enemyTeam.findIndex(m => m.currentHp > 0);
-                    if (nextEnemyIdx !== -1) {
-                        eActiveIdx = nextEnemyIdx;
-                        logBattle(`<span class="log-system">${enemyPlayerName} は ${enemyTeam[eActiveIdx].name} を繰り出した！</span>`);
-                        updateBattleUI();
-                    }
-                }
-            }
-        }
-
-        async function applyEndTurnRegenAsync(side) {
-            const mon = side === 'player' ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
-            const name = side === 'player' ? playerName : enemyPlayerName;
-
-            if (mon.currentHp > 0 && mon.regenRate > 0 && mon.currentHp < mon.maxHp) {
-                const healVal = Math.round(mon.maxHp * mon.regenRate);
-                mon.currentHp = Math.min(mon.maxHp, mon.currentHp + healVal);
-                logBattle(`<span class="log-system">✨ ${name} (${mon.name}) の再生能力！ HPが ${healVal} 回復！</span>`);
-                updateBattleUI();
-                await sleep(600); // ⏱️ 回復メッセージ用ウェイト
-            }
-        }
-
-        // ⏱️ ディレイを伴う非同期攻撃実行処理
-        async function performAttackAsync(attackerSide) {
-            const attacker = attackerSide === 'player' ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
-            const defender = attackerSide === 'player' ? enemyTeam[eActiveIdx] : playerTeam[pActiveIdx];
-            const defenderBoxId = attackerSide === 'player' ? 'enemy-card-box' : 'player-card-box';
-            const attackerName = attackerSide === 'player' ? playerName : enemyPlayerName;
-            const defenderName = attackerSide === 'player' ? enemyPlayerName : playerName;
-
-            // ダメージ計算
-            let baseDamage = Math.max(10, Math.floor(attacker.atk * 1.5 - defender.def * 0.6));
-            
-            if (attacker.abilities.some(a => a.includes("背水の陣")) && (attacker.currentHp / attacker.maxHp) <= 0.3) {
-                baseDamage = Math.round(baseDamage * 1.4);
-            }
-
-            const isCrit = (Math.random() * 100) < attacker.critRate;
-            if (isCrit) {
-                baseDamage = Math.round(baseDamage * (1.5 + attacker.critDmg / 100));
-            }
-
-            const randomMult = 0.85 + Math.random() * 0.3;
-            let finalDamage = Math.max(1, Math.round(baseDamage * randomMult));
-
-            if (defender.damageCutRate > 0) {
-                finalDamage = Math.max(1, Math.round(finalDamage * (1 - defender.damageCutRate)));
-            }
-
-            // 💥 1. 画面揺れ＆攻撃ログ表示
-            triggerShake(defenderBoxId);
-            const critTxt = isCrit ? `<span class="log-crit"> 💥 急所に当たった！</span>` : '';
-            logBattle(`<span class="log-attack">${attackerName} (${attacker.name})</span> の攻撃！`);
-            await sleep(400); // ⏱️ ヒット演出間隔
-
-            // 💥 2. 被ダメージ適用 ＆ HPゲージ減少
-            if (defender.currentHp - finalDamage <= 0 && defender.hasEndure && !defender.endureTriggered) {
-                defender.currentHp = 1;
-                defender.endureTriggered = true;
-                logBattle(`${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
-                logBattle(`<span class="log-system">🔥 ${defenderName} (${defender.name}) は 不屈の魂 で耐えた！ (HP: 1)</span>`);
-            } else {
-                defender.currentHp -= finalDamage;
-                logBattle(`${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
-            }
-            updateBattleUI();
-            await sleep(600); // ⏱️ ダメージ数値確認間隔
-
-            // 🩸 3. 吸血処理 (ある場合)
-            if (attacker.drainRate > 0 && attacker.currentHp < attacker.maxHp) {
-                const drainVal = Math.round(finalDamage * attacker.drainRate);
-                attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + drainVal);
-                logBattle(`<span class="log-system">🩸 ${attackerName} (${attacker.name}) は攻撃から HP ${drainVal} を吸血回復！</span>`);
-                updateBattleUI();
-                await sleep(500); // ⏱️ 吸血ウェイト
-            }
-
-            // ⚡ 4. カウンター処理 (ある場合)
-            if (defender.currentHp > 0 && defender.counterRate > 0 && Math.random() < defender.counterRate) {
-                const counterDmg = Math.max(1, Math.round(defender.atk * 0.5));
-                attacker.currentHp -= counterDmg;
-                logBattle(`<span class="log-damage">⚡ ${defenderName} (${defender.name}) の反撃！ ${attackerName} に ${counterDmg} のダメージ！</span>`);
-                updateBattleUI();
-                await sleep(500); // ⏱️ 反撃ウェイト
-            }
-
-            await sleep(500); // ⏱️ 次の行動（後攻）への間隔
-        }
-
-        function checkGameEnd() {
-            const pAllDead = playerTeam.every(m => m.currentHp <= 0);
-            const eAllDead = enemyTeam.every(m => m.currentHp <= 0);
-
-            if (pAllDead || eAllDead) {
-                const title = document.getElementById('result-title');
-                const sub = document.getElementById('result-sub');
-                const modal = document.getElementById('result-modal');
-
-                if (pAllDead && eAllDead) {
-                    title.textContent = "DRAW";
-                    title.style.color = "#aaa";
-                    sub.textContent = "相打ち！引き分けです！";
-                } else if (eAllDead) {
-                    title.textContent = "VICTORY";
-                    title.style.color = "#ffeb3b";
-                    sub.textContent = `${playerName} の勝利！`;
-                } else {
-                    title.textContent = "DEFEAT";
-                    title.style.color = "#f44336";
-                    sub.textContent = `${enemyPlayerName} の勝利...`;
-                }
-
-                modal.style.display = "flex";
-                return true;
-            }
-            return false;
         }
     </script>
 </body>
