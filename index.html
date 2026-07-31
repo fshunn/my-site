@@ -1294,7 +1294,19 @@
                 mon.hp -= poisonDmg;
                 logMessage(`☠️ ${mon.name} は毒（x${mon.poisonDebuffs.length}）のダメージにより <span class="log-damage">${poisonDmg}</span> のダメージ！`, 'log-poison');
                 
-                mon.poisonDebuffs.forEach(d => d.turns -= 1);
+                let extendedPoisonCount = 0;
+                mon.poisonDebuffs.forEach(d => {
+                    d.turns -= 1;
+                    // 低確率（30%）で毒が延長され、2ターン後も続くようにする処理
+                    if (d.turns === 0 && Math.random() < 0.30) {
+                        d.turns = 1;
+                        extendedPoisonCount++;
+                    }
+                });
+
+                if (extendedPoisonCount > 0) {
+                    logMessage(`⚠️ ${mon.name} の毒が低確率で延長された！（${extendedPoisonCount}スタック）`, 'log-poison');
+                }
 
                 const expiredCount = mon.poisonDebuffs.filter(d => d.turns <= 0).length;
                 mon.poisonDebuffs = mon.poisonDebuffs.filter(d => d.turns > 0);
