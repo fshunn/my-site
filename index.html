@@ -969,6 +969,7 @@
         }
 
         function selectTurnAction(type, detail = null) {
+            if (isProcessingTurn || isMyTurnConfirmed) return; // 処理中または確定済みの場合は無効
             myTurnChoice = { type, detail };
             const label = type === 'attack' ? '⚔️ 攻撃' : `🔄 交代 (${playerTeam[detail].name})`;
             document.getElementById('selected-action-display').textContent = `選択中の行動: ${label}`;
@@ -981,7 +982,6 @@
             const pMon = playerTeam[pActiveIdx];
             const aliveIndexes = enemyTeam.map((m, i) => (m.hp > 0 && i !== eActiveIdx) ? i : -1).filter(i => i !== -1);
 
-            // 1. 見習い (🌱): 完全ランダム
             if (aiDifficulty === "novice") {
                 if (aliveIndexes.length > 0 && Math.random() < 0.3) {
                     const randIndex = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
@@ -990,7 +990,6 @@
                 return { type: 'attack', detail: null };
             }
 
-            // 2. かんたん (🟢): 稀に思考、基本攻撃
             if (aiDifficulty === "easy") {
                 if (eMon.hp / eMon.maxHp < 0.2 && aliveIndexes.length > 0 && Math.random() < 0.3) {
                     return { type: 'switch', detail: aliveIndexes[0] };
@@ -998,31 +997,24 @@
                 return { type: 'attack', detail: null };
             }
 
-            // 3. ふつう (🔵): 常に攻撃
             if (aiDifficulty === "normal") {
                 return { type: 'attack', detail: null };
             }
 
-            // 4. むずかしい (🟠): ダメージ推定を行い、致死攻撃や交代を狙う
             let approxDmg = Math.round(eMon.atk * (100 / (100 + pMon.def)));
             if (pMon.bleedDebuffs.length > 0) approxDmg *= (1 + pMon.bleedDebuffs.length * 0.15);
 
             if (aiDifficulty === "hard") {
-                // 確定で倒せるなら絶対攻撃
                 if (approxDmg >= pMon.hp) return { type: 'attack', detail: null };
-                // 自分のHPが15%未満で交代先があれば交代
                 if (eMon.hp / eMon.maxHp < 0.15 && aliveIndexes.length > 0) {
                     return { type: 'switch', detail: aliveIndexes[0] };
                 }
                 return { type: 'attack', detail: null };
             }
 
-            // 5. おに (👹): 有利なステータスの味方へ戦略交代
             if (aiDifficulty === "oni") {
                 if (approxDmg >= pMon.hp) return { type: 'attack', detail: null };
-                
                 if (eMon.hp / eMon.maxHp < 0.25 && aliveIndexes.length > 0) {
-                    // 一番HPが多い控えを選択
                     let bestIdx = aliveIndexes[0];
                     aliveIndexes.forEach(idx => {
                         if (enemyTeam[idx].hp > enemyTeam[bestIdx].hp) bestIdx = idx;
@@ -1032,22 +1024,15 @@
                 return { type: 'attack', detail: null };
             }
 
-            // 6. 絶望・神級 (💀): 精密ダメージシミュレーション
             if (aiDifficulty === "despair") {
-                // 会心含む最大期待値を考慮
                 let maxExpectedDmg = approxDmg * (1 + (eMon.critRate / 100) * (0.5 + eMon.critDmg / 100));
-                
-                // 攻撃でプレイヤーを撃破できるか？
                 if (maxExpectedDmg >= pMon.hp) return { type: 'attack', detail: null };
 
-                // 自分のHPがヤバく、敵の攻撃で1確されそうな場合、耐久力の一番高い控えへ交代
                 let enemyAtkToMe = Math.round(pMon.atk * (100 / (100 + eMon.def)));
                 if (eMon.hp <= enemyAtkToMe && aliveIndexes.length > 0) {
                     let safestIdx = aliveIndexes[0];
                     aliveIndexes.forEach(idx => {
-                        let cand = enemyTeam[idx];
-                        let candDef = cand.def;
-                        if (cand.hp > enemyTeam[safestIdx].hp) safestIdx = idx;
+                        if (enemyTeam[idx].hp > enemyTeam[safestIdx].hp) safestIdx = idx;
                     });
                     return { type: 'switch', detail: safestIdx };
                 }
@@ -1057,9 +1042,18 @@
             return { type: 'attack', detail: null };
         }
 
+        function setActionButtonsDisabled(disabled) {
+            document.getElementById('btn-select-attack').disabled = disabled;
+            document.getElementById('btn-select-switch').disabled = disabled;
+            document.getElementById('btn-confirm-action').disabled = disabled;
+        }
+
         function confirmTurnAction() {
+            if (isMyTurnConfirmed || isProcessingTurn) return;
+
             isMyTurnConfirmed = true;
-            document.getElementById('btn-confirm-action').disabled = true;
+            setActionButtonsDisabled(true); // 決定した瞬間に全アクションボタンをロック
+            document.getElementById('turn-status-tag').textContent = "相手の選択を待っています...";
 
             if (gameMode === "AI") {
                 enemySelectedAction = getAIChosenAction();
@@ -1074,6 +1068,7 @@
         function checkExecuteTurn() {
             if (isMyTurnConfirmed && isOpponentTurnConfirmed && !isProcessingTurn) {
                 isProcessingTurn = true;
+                document.getElementById('turn-status-tag').textContent = "ターン処理中...";
                 processTurn();
             }
         }
@@ -1104,36 +1099,46 @@
                 if (pFirst) {
                     if (myTurnChoice.type === 'attack' && pMon.hp > 0) {
                         await executeSingleAction(pMon, eMon, true);
-                        if (await checkFaintedState()) { isProcessingTurn = false; return; }
+                        if (await checkFaintedState()) return;
                     }
                     if (enemySelectedAction.type === 'attack' && eMon.hp > 0) {
                         await executeSingleAction(eMon, pMon, false);
-                        if (await checkFaintedState()) { isProcessingTurn = false; return; }
+                        if (await checkFaintedState()) return;
                     }
                 } else {
                     if (enemySelectedAction.type === 'attack' && eMon.hp > 0) {
                         await executeSingleAction(eMon, pMon, false);
-                        if (await checkFaintedState()) { isProcessingTurn = false; return; }
+                        if (await checkFaintedState()) return;
                     }
                     if (myTurnChoice.type === 'attack' && pMon.hp > 0) {
                         await executeSingleAction(pMon, eMon, true);
-                        if (await checkFaintedState()) { isProcessingTurn = false; return; }
+                        if (await checkFaintedState()) return;
                     }
                 }
             }
 
             await applyEndTurnEffects(playerTeam[pActiveIdx]);
-            if (await checkFaintedState()) { isProcessingTurn = false; return; }
+            if (await checkFaintedState()) return;
 
             await applyEndTurnEffects(enemyTeam[eActiveIdx]);
-            if (await checkFaintedState()) { isProcessingTurn = false; return; }
+            if (await checkFaintedState()) return;
 
             updateBattleDisplay();
 
+            // ターン全処理完了時の初期化
             isMyTurnConfirmed = false;
             isOpponentTurnConfirmed = false;
             isProcessingTurn = false;
+            myTurnChoice = null;
+            
             document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
+            
+            // 攻撃・交代ボタンのロックを解除
+            document.getElementById('btn-select-attack').disabled = false;
+            document.getElementById('btn-select-switch').disabled = false;
+            // 「OK」ボタンは未選択状態なのでdisabledのまま
+            document.getElementById('btn-confirm-action').disabled = true;
         }
 
         async function executeSingleAction(attacker, defender, isAttackerPlayer) {
@@ -1248,15 +1253,12 @@
             if (eFainted && hasEAlive) {
                 const aliveIndexes = enemyTeam.map((m, i) => m.hp > 0 ? i : -1).filter(i => i !== -1);
                 
-                // AI難易度に応じた死亡時交代先の選択
                 let nextEIdx = aliveIndexes[0];
                 if (aiDifficulty === "oni" || aiDifficulty === "despair") {
-                    // 最もHPが高いモンスターをくり出す
                     aliveIndexes.forEach(idx => {
                         if (enemyTeam[idx].hp > enemyTeam[nextEIdx].hp) nextEIdx = idx;
                     });
                 } else if (aiDifficulty === "novice") {
-                    // 完全ランダム
                     nextEIdx = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
                 }
 
