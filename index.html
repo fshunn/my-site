@@ -912,15 +912,8 @@
                             updateBattleDisplay();
                             closeSwitchModal();
 
-                            // 修正箇所: 交代後にターン状態とボタンを正しくリセット
-                            isMyTurnConfirmed = false;
-                            isOpponentTurnConfirmed = false;
-                            isProcessingTurn = false;
-                            myTurnChoice = null;
-                            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
-                            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
-                            setActionButtonsDisabled(false);
-                            document.getElementById('btn-confirm-action').disabled = true;
+                            isForcedSwitching = false;
+                            resetTurnState();
 
                             if (gameMode !== "AI") {
                                 sendData({ type: 'FORCED_SWITCH', newIdx: pActiveIdx });
@@ -1061,6 +1054,20 @@
             document.getElementById('btn-confirm-action').disabled = disabled;
         }
 
+        function resetTurnState() {
+            isMyTurnConfirmed = false;
+            isOpponentTurnConfirmed = false;
+            isProcessingTurn = false;
+            myTurnChoice = null;
+            enemySelectedAction = null;
+            
+            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
+            
+            setActionButtonsDisabled(false);
+            document.getElementById('btn-confirm-action').disabled = true;
+        }
+
         function confirmTurnAction() {
             if (isMyTurnConfirmed || isProcessingTurn) return;
 
@@ -1087,67 +1094,66 @@
         }
 
         async function processTurn() {
-            logMessage(`--- ターン開始 ---`, 'log-system');
+            try {
+                logMessage(`--- ターン開始 ---`, 'log-system');
 
-            if (myTurnChoice.type === 'switch') {
-                pActiveIdx = myTurnChoice.detail;
-                logMessage(`🔄 ${playerName} は <span class="log-swap">${playerTeam[pActiveIdx].name}</span> に交代した！`, 'log-swap');
-                updateBattleDisplay();
-                await sleep(500);
-            }
+                if (myTurnChoice && myTurnChoice.type === 'switch') {
+                    pActiveIdx = myTurnChoice.detail;
+                    logMessage(`🔄 ${playerName} は <span class="log-swap">${playerTeam[pActiveIdx].name}</span> に交代した！`, 'log-swap');
+                    updateBattleDisplay();
+                    await sleep(500);
+                }
 
-            if (enemySelectedAction.type === 'switch') {
-                eActiveIdx = enemySelectedAction.detail;
-                logMessage(`🔄 ${enemyPlayerName} は <span class="log-swap">${enemyTeam[eActiveIdx].name}</span> に交代した！`, 'log-swap');
-                updateBattleDisplay();
-                await sleep(500);
-            }
+                if (enemySelectedAction && enemySelectedAction.type === 'switch') {
+                    eActiveIdx = enemySelectedAction.detail;
+                    logMessage(`🔄 ${enemyPlayerName} は <span class="log-swap">${enemyTeam[eActiveIdx].name}</span> に交代した！`, 'log-swap');
+                    updateBattleDisplay();
+                    await sleep(500);
+                }
 
-            const pMon = playerTeam[pActiveIdx];
-            const eMon = enemyTeam[eActiveIdx];
+                let pMon = playerTeam[pActiveIdx];
+                let eMon = enemyTeam[eActiveIdx];
 
-            if (myTurnChoice.type === 'attack' || enemySelectedAction.type === 'attack') {
-                let pFirst = pMon.spd >= eMon.spd;
+                if ((myTurnChoice && myTurnChoice.type === 'attack') || (enemySelectedAction && enemySelectedAction.type === 'attack')) {
+                    let pFirst = pMon.spd >= eMon.spd;
 
-                if (pFirst) {
-                    if (myTurnChoice.type === 'attack' && pMon.hp > 0) {
-                        await executeSingleAction(pMon, eMon, true);
-                        if (await checkFaintedState()) return;
-                    }
-                    if (enemySelectedAction.type === 'attack' && eMon.hp > 0) {
-                        await executeSingleAction(eMon, pMon, false);
-                        if (await checkFaintedState()) return;
-                    }
-                } else {
-                    if (enemySelectedAction.type === 'attack' && eMon.hp > 0) {
-                        await executeSingleAction(eMon, pMon, false);
-                        if (await checkFaintedState()) return;
-                    }
-                    if (myTurnChoice.type === 'attack' && pMon.hp > 0) {
-                        await executeSingleAction(pMon, eMon, true);
-                        if (await checkFaintedState()) return;
+                    if (pFirst) {
+                        if (myTurnChoice && myTurnChoice.type === 'attack' && pMon.hp > 0) {
+                            await executeSingleAction(pMon, eMon, true);
+                            if (await checkFaintedState()) return;
+                        }
+                        if (enemySelectedAction && enemySelectedAction.type === 'attack' && eMon.hp > 0) {
+                            pMon = playerTeam[pActiveIdx];
+                            eMon = enemyTeam[eActiveIdx];
+                            await executeSingleAction(eMon, pMon, false);
+                            if (await checkFaintedState()) return;
+                        }
+                    } else {
+                        if (enemySelectedAction && enemySelectedAction.type === 'attack' && eMon.hp > 0) {
+                            await executeSingleAction(eMon, pMon, false);
+                            if (await checkFaintedState()) return;
+                        }
+                        if (myTurnChoice && myTurnChoice.type === 'attack' && pMon.hp > 0) {
+                            pMon = playerTeam[pActiveIdx];
+                            eMon = enemyTeam[eActiveIdx];
+                            await executeSingleAction(pMon, eMon, true);
+                            if (await checkFaintedState()) return;
+                        }
                     }
                 }
+
+                await applyEndTurnEffects(playerTeam[pActiveIdx]);
+                if (await checkFaintedState()) return;
+
+                await applyEndTurnEffects(enemyTeam[eActiveIdx]);
+                if (await checkFaintedState()) return;
+
+                updateBattleDisplay();
+            } finally {
+                if (!isForcedSwitching && playerTeam[pActiveIdx].hp > 0) {
+                    resetTurnState();
+                }
             }
-
-            await applyEndTurnEffects(playerTeam[pActiveIdx]);
-            if (await checkFaintedState()) return;
-
-            await applyEndTurnEffects(enemyTeam[eActiveIdx]);
-            if (await checkFaintedState()) return;
-
-            updateBattleDisplay();
-
-            isMyTurnConfirmed = false;
-            isOpponentTurnConfirmed = false;
-            isProcessingTurn = false;
-            myTurnChoice = null;
-            
-            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
-            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
-            
-            setActionButtonsDisabled(false);
-            document.getElementById('btn-confirm-action').disabled = true;
         }
 
         async function executeSingleAction(attacker, defender, isAttackerPlayer) {
