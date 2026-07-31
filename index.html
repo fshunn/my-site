@@ -929,6 +929,7 @@
             document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
         }
 
+        // 修正：攻撃（attacker）と防御（defender）の各パラメータ参照・振り分けを厳密に分離
         async function executeSingleAction(attacker, defender, isAttackerPlayer) {
             let baseDmg = Math.max(10, attacker.atk * (100 / (100 + defender.def)));
             
@@ -950,7 +951,6 @@
 
             logMessage(`${attacker.name} の攻撃！ ${isCrit ? '<span class="log-crit">💥 会心の一撃！</span>' : ''} ${defender.name} に <span class="log-damage">${dmg}</span> のダメージ！`, 'log-attack');
 
-            // 修正箇所：攻撃者（attacker）本人のアビリティだけを判定して自分自身を回復
             attacker.abilities.forEach(abi => {
                 let drainPercent = 0;
                 if (abi.includes("微弱吸血")) drainPercent = 0.10;
@@ -1019,7 +1019,6 @@
             return true;
         }
 
-        // リジェネ（再生）アビリティの計算
         function applyEndTurnAbilities(mon) {
             if (mon.hp <= 0) return;
             mon.abilities.forEach(abi => {
