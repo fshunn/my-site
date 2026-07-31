@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - AI難易度選択版 (Ver 6.8)</title>
+    <title>STAR FORGE - 遊び方追加＆AI難易度選択版 (Ver 6.9)</title>
     <!-- WebRTC(PeerJS) ライブラリ読み込み -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -30,7 +30,17 @@
         /* スタート画面 */
         #start-screen { text-align: center; padding: 40px 20px; background: #282828; border-radius: 12px; margin-top: 20px; }
         .game-title { font-size: 42px; color: #ffeb3b; margin-bottom: 5px; }
-        .subtitle { color: #aaa; margin-bottom: 30px; font-size: 15px; }
+        .subtitle { color: #aaa; margin-bottom: 25px; font-size: 15px; }
+
+        /* 折りたたみ遊び方アコーディオン */
+        .how-to-accordion { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; margin-bottom: 25px; overflow: hidden; text-align: left; }
+        .how-to-header { background: #151922; padding: 12px 20px; font-weight: bold; color: #00d2ff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 16px; }
+        .how-to-header:hover { background: #1a202c; }
+        .how-to-content { display: none; padding: 20px; border-top: 1px solid #333; font-size: 13px; line-height: 1.7; color: #ddd; max-height: 400px; overflow-y: auto; }
+        .how-to-sec { margin-bottom: 15px; }
+        .how-to-sec-title { color: #ffeb3b; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .how-to-ul { margin: 0; padding-left: 20px; }
+
         .mode-box { background: #1e1e1e; border: 1px solid #444; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .mode-title { font-size: 18px; color: #00d2ff; font-weight: bold; margin-bottom: 12px; }
         .pass-input { background: #111; border: 1px solid #666; color: #ffeb3b; font-size: 18px; font-weight: bold; padding: 10px; border-radius: 6px; width: 220px; text-align: center; margin-bottom: 12px; outline: none; }
@@ -38,7 +48,7 @@
         .start-btn { font-size: 15px; padding: 10px 18px; background: #4caf50; color: white; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin: 4px; }
         .start-btn-blue { background: #2196f3; }
         
-        /* AI難易度ボタン色分け */
+        /* AI難易度ボタン */
         .btn-easy { background: #4caf50; }
         .btn-normal { background: #2196f3; }
         .btn-hard { background: #ff9800; color: #000; }
@@ -150,6 +160,42 @@
         <h1 class="game-title">STAR FORGE</h1>
         <p class="subtitle">- オンライン通信対戦 & AIバトル -</p>
         
+        <!-- 📖 折りたたみ遊び方ガイド -->
+        <div class="how-to-accordion">
+            <div class="how-to-header" onclick="toggleHowTo()">
+                <span>📖 STAR FORGE の遊び方・ルール</span>
+                <span id="how-to-icon">▼ クリックで開く</span>
+            </div>
+            <div id="how-to-content" class="how-to-content">
+                <div class="how-to-sec">
+                    <div class="how-to-sec-title">1. パーティ構築（ビルドフェーズ）</div>
+                    <ul class="how-to-ul">
+                        <li>所持金 <strong>5000 pt</strong> を使って最大3体のモンスターを構築します。</li>
+                        <li><strong>コスト（★）</strong>：パーティ全体の合計コストは <strong>★7</strong> まで組み込み可能です。</li>
+                        <li>枠（★1〜★4）を開放すると、能力値（個体値）が解放され、ランダムなアビリティが付与されます。</li>
+                    </ul>
+                </div>
+                <div class="how-to-sec">
+                    <div class="how-to-sec-title">2. 厳選と突破（ポイント消費）</div>
+                    <ul class="how-to-ul">
+                        <li><strong>ステータスリロール (150pt)</strong>：個体ランク（C〜S）とステータス補正値をランダムに振り直します。</li>
+                        <li><strong>アビリティリロール (100pt)</strong>：各枠のアビリティ効果をランダムで変更します。</li>
+                        <li><strong>🔒 固定（ロック）</strong>：残したいステータスを最大2つまで固定してリロールできます。</li>
+                        <li><strong>💥 突破 (オーバークロック)</strong>：能力値を限界突破させて最高の <strong>S+</strong> に固定強化します。</li>
+                    </ul>
+                </div>
+                <div class="how-to-sec">
+                    <div class="how-to-sec-title">3. 対戦（バトルフェーズ）</div>
+                    <ul class="how-to-ul">
+                        <li>ターン制バトルです。「⚔️ 攻撃」または「🔄 交代」を選択します。</li>
+                        <li><strong>素早さ（SPD）</strong>が高いモンスターが先手をとって攻撃します。</li>
+                        <li>交代コマンドは攻撃よりも最優先で実行されます。</li>
+                        <li>相手のモンスターを全滅させたプレイヤーの勝利です！</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <div class="mode-box">
             <div class="mode-title">🤖 AI対戦モード (難易度選択)</div>
             <button class="start-btn btn-easy" onclick="startAIBattle('easy')">かんたん</button>
@@ -298,6 +344,19 @@
     </div>
 
     <script>
+        // --- UI関数 (遊び方開閉) ---
+        function toggleHowTo() {
+            const content = document.getElementById('how-to-content');
+            const icon = document.getElementById('how-to-icon');
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                icon.textContent = "▼ クリックで開く";
+            } else {
+                content.style.display = "block";
+                icon.textContent = "▲ 閉じる";
+            }
+        }
+
         // --- 通信・ゲーム状態 ---
         let gameMode = "AI"; 
         let aiDifficulty = "normal"; // easy, normal, hard, oni
@@ -740,13 +799,12 @@
             const activeP = playerTeam[pActiveIdx];
 
             if (aiDifficulty === "easy" || aiDifficulty === "normal") {
-                return { type: 'attack' }; // 単純攻撃
+                return { type: 'attack' }; 
             }
 
             // 「むずかしい」「おに」の思考ロジック
             const aliveIndexes = enemyTeam.map((m, idx) => (m.currentHp > 0 && idx !== eActiveIdx) ? idx : null).filter(val => val !== null);
 
-            // HPが20%以下かつ控えにピンピンしたモンスターがいるなら低確率〜高確率で交代
             if (activeE.currentHp < activeE.maxHp * 0.25 && aliveIndexes.length > 0) {
                 const switchChance = (aiDifficulty === "oni") ? 0.7 : 0.4;
                 if (Math.random() < switchChance) {
