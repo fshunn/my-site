@@ -911,6 +911,20 @@
                             logMessage(`🔄 ${playerName} は <span class="log-swap">${playerTeam[pActiveIdx].name}</span> をくり出した！`, 'log-swap');
                             updateBattleDisplay();
                             closeSwitchModal();
+
+                            // 修正箇所: 交代後にターン状態とボタンを正しくリセット
+                            isMyTurnConfirmed = false;
+                            isOpponentTurnConfirmed = false;
+                            isProcessingTurn = false;
+                            myTurnChoice = null;
+                            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+                            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
+                            setActionButtonsDisabled(false);
+                            document.getElementById('btn-confirm-action').disabled = true;
+
+                            if (gameMode !== "AI") {
+                                sendData({ type: 'FORCED_SWITCH', newIdx: pActiveIdx });
+                            }
                         } else {
                             selectTurnAction('switch', idx);
                             closeSwitchModal();
@@ -969,14 +983,13 @@
         }
 
         function selectTurnAction(type, detail = null) {
-            if (isProcessingTurn || isMyTurnConfirmed) return; // 処理中または確定済みの場合は無効
+            if (isProcessingTurn || isMyTurnConfirmed) return;
             myTurnChoice = { type, detail };
             const label = type === 'attack' ? '⚔️ 攻撃' : `🔄 交代 (${playerTeam[detail].name})`;
             document.getElementById('selected-action-display').textContent = `選択中の行動: ${label}`;
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
-        // 🧠 AI思考ロジック（難易度全6種）
         function getAIChosenAction() {
             const eMon = enemyTeam[eActiveIdx];
             const pMon = playerTeam[pActiveIdx];
@@ -1052,7 +1065,7 @@
             if (isMyTurnConfirmed || isProcessingTurn) return;
 
             isMyTurnConfirmed = true;
-            setActionButtonsDisabled(true); // 決定した瞬間に全アクションボタンをロック
+            setActionButtonsDisabled(true);
             document.getElementById('turn-status-tag').textContent = "相手の選択を待っています...";
 
             if (gameMode === "AI") {
@@ -1125,7 +1138,6 @@
 
             updateBattleDisplay();
 
-            // ターン全処理完了時の初期化
             isMyTurnConfirmed = false;
             isOpponentTurnConfirmed = false;
             isProcessingTurn = false;
@@ -1134,10 +1146,7 @@
             document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
             document.getElementById('turn-status-tag').textContent = "行動を選択してください";
             
-            // 攻撃・交代ボタンのロックを解除
-            document.getElementById('btn-select-attack').disabled = false;
-            document.getElementById('btn-select-switch').disabled = false;
-            // 「OK」ボタンは未選択状態なのでdisabledのまま
+            setActionButtonsDisabled(false);
             document.getElementById('btn-confirm-action').disabled = true;
         }
 
@@ -1297,7 +1306,6 @@
                 let extendedPoisonCount = 0;
                 mon.poisonDebuffs.forEach(d => {
                     d.turns -= 1;
-                    // 低確率（30%）で毒が延長され、2ターン後も続くようにする処理
                     if (d.turns === 0 && Math.random() < 0.30) {
                         d.turns = 1;
                         extendedPoisonCount++;
