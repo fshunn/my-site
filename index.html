@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 遊び方追加＆AI難易度選択版 (Ver 6.9)</title>
+    <title>STAR FORGE - 固有アビリティ刷新版 (Ver 7.0)</title>
     <!-- WebRTC(PeerJS) ライブラリ読み込み -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -48,17 +48,14 @@
         .start-btn { font-size: 15px; padding: 10px 18px; background: #4caf50; color: white; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin: 4px; }
         .start-btn-blue { background: #2196f3; }
         
-        /* AI難易度ボタン */
         .btn-easy { background: #4caf50; }
         .btn-normal { background: #2196f3; }
         .btn-hard { background: #ff9800; color: #000; }
         .btn-oni { background: #f44336; color: #fff; text-shadow: 0 0 4px #000; }
 
-        /* ロビー画面 */
         #lobby-screen { display: none; text-align: center; padding: 40px 20px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #00d2ff; }
         .room-code-display { font-size: 28px; color: #ffeb3b; font-weight: bold; background: #111; padding: 10px 20px; border-radius: 8px; display: inline-block; margin: 15px 0; border: 1px solid #444; }
 
-        /* ビルド画面 */
         #build-screen { display: none; }
         .player-info-setting { background: #222; border: 1px solid #444; border-radius: 8px; padding: 12px 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .player-name-input { background: #111; border: 1px solid #555; color: #fff; padding: 6px 12px; font-size: 14px; border-radius: 4px; outline: none; width: 180px; }
@@ -103,14 +100,12 @@
         .buy-area { background: #202020; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
         .slot { border: 1px solid #555; padding: 8px 12px; margin-top: 8px; border-radius: 6px; background: #333; display: flex; align-items: center; justify-content: space-between; }
 
-        /* バトル待合室 */
         #pre-battle-room { display: none; text-align: center; padding: 30px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #ff9800; }
         .starter-select-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
         .starter-card { background: #2a2a2a; border: 2px solid #555; padding: 15px; border-radius: 8px; width: 200px; cursor: pointer; text-align: left; transition: all 0.2s; }
         .starter-card:hover { border-color: #00d2ff; }
         .starter-card.selected { border-color: #ffeb3b; background: #333311; }
 
-        /* バトル画面 */
         #battle-screen { display: none; }
         .battle-arena { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #222; padding: 20px; border-radius: 8px; border: 2px solid #444; margin-bottom: 20px; }
         .battle-card { background: #2a2a2a; border-radius: 8px; padding: 15px; border: 1px solid #555; text-align: center; transition: transform 0.1s; }
@@ -124,7 +119,6 @@
         .ability-title { font-weight: bold; color: #ffeb3b; margin-bottom: 4px; font-size: 11px; }
         .ability-list { list-style: none; padding: 0; margin: 0; color: #00d2ff; }
 
-        /* バトルログ */
         .battle-log-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6; }
         .log-entry { margin-bottom: 4px; }
         .log-attack { color: #00d2ff; font-weight: bold; }
@@ -141,7 +135,6 @@
 
         .turn-status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; }
 
-        /* モーダル */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: #2a2a2a; padding: 20px; border-radius: 12px; border: 1px solid #555; width: 340px; text-align: center; }
         .switch-item { background: #1f1f1f; border: 1px solid #444; padding: 10px; margin: 8px 0; border-radius: 6px; cursor: pointer; text-align: left; }
@@ -172,14 +165,14 @@
                     <ul class="how-to-ul">
                         <li>所持金 <strong>5000 pt</strong> を使って最大3体のモンスターを構築します。</li>
                         <li><strong>コスト（★）</strong>：パーティ全体の合計コストは <strong>★7</strong> まで組み込み可能です。</li>
-                        <li>枠（★1〜★4）を開放すると、能力値（個体値）が解放され、ランダムなアビリティが付与されます。</li>
+                        <li>枠（★1〜★4）を開放すると、★に応じた固有アビリティ（特性）が付与されます。</li>
                     </ul>
                 </div>
                 <div class="how-to-sec">
                     <div class="how-to-sec-title">2. 厳選と突破（ポイント消費）</div>
                     <ul class="how-to-ul">
                         <li><strong>ステータスリロール (150pt)</strong>：個体ランク（C〜S）とステータス補正値をランダムに振り直します。</li>
-                        <li><strong>アビリティリロール (100pt)</strong>：各枠のアビリティ効果をランダムで変更します。</li>
+                        <li><strong>アビリティリロール (100pt)</strong>：各枠の固有アビリティをランダムで変更します。</li>
                         <li><strong>🔒 固定（ロック）</strong>：残したいステータスを最大2つまで固定してリロールできます。</li>
                         <li><strong>💥 突破 (オーバークロック)</strong>：能力値を限界突破させて最高の <strong>S+</strong> に固定強化します。</li>
                     </ul>
@@ -188,8 +181,7 @@
                     <div class="how-to-sec-title">3. 対戦（バトルフェーズ）</div>
                     <ul class="how-to-ul">
                         <li>ターン制バトルです。「⚔️ 攻撃」または「🔄 交代」を選択します。</li>
-                        <li><strong>素早さ（SPD）</strong>が高いモンスターが先手をとって攻撃します。</li>
-                        <li>交代コマンドは攻撃よりも最優先で実行されます。</li>
+                        <li><strong>固有アビリティ</strong>：自動回復、ダメージ軽減、吸血、食いしばりなどの特性がバトル中に自動発動します！</li>
                         <li>相手のモンスターを全滅させたプレイヤーの勝利です！</li>
                     </ul>
                 </div>
@@ -291,7 +283,7 @@
                     会心率: <span id="p-crit-rate">0</span>% | 会心ダメ: +<span id="p-crit-dmg">0</span>%
                 </div>
                 <div class="ability-box">
-                    <div class="ability-title">✨ アビリティ (自分)</div>
+                    <div class="ability-title">✨ 固有アビリティ (自分)</div>
                     <ul id="p-abilities" class="ability-list"></ul>
                 </div>
             </div>
@@ -307,7 +299,7 @@
                     会心率: <span id="e-crit-rate">0</span>% | 会心ダメ: +<span id="e-crit-dmg">0</span>%
                 </div>
                 <div class="ability-box">
-                    <div class="ability-title">✨ アビリティ (相手)</div>
+                    <div class="ability-title">✨ 固有アビリティ (相手)</div>
                     <ul id="e-abilities" class="ability-list"></ul>
                 </div>
             </div>
@@ -403,11 +395,36 @@
 
         const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
 
+        // 🌟 基礎ステアップ排除・★別 固有アビリティプール
         const ABILITY_POOL = {
-            1: ["攻撃力 +8%", "攻撃力 +10%", "HP +10%", "防御力 +10%", "素早さ +8%", "会心率 +4%"],
-            2: ["攻撃力 +20%", "HP +25%", "防御力 +20%", "素早さ +18%", "会心率 +10%"],
-            3: ["攻撃力 +40%", "HP +45%", "防御力 +40%", "素早さ +30%", "会心率 +18%"],
-            4: ["攻撃力 +65%", "HP +75%", "防御力 +60%", "素早さ +45%", "会心率 +25%"]
+            1: [
+                "微再生（毎ターンHP3%回復）",
+                "かすり傷（被ダメ5%軽減）",
+                "微弱吸血（与ダメの5%HP回復）",
+                "鋭利（会心ダメージ+15%）",
+                "応戦（被撃時5%で反撃）"
+            ],
+            2: [
+                "リジェネ（毎ターンHP7%回復）",
+                "鉄壁の構え（被ダメ12%軽減）",
+                "吸血の構え（与ダメの10%HP回復）",
+                "急所突貫（会心率+10%）",
+                "カウンター（被撃時15%で反撃）"
+            ],
+            3: [
+                "ハイリジェネ（毎ターンHP12%回復）",
+                "金剛の盾（被ダメ20%軽減）",
+                "強欲の吸血（与ダメの20%HP回復）",
+                "一撃必殺（会心ダメージ+50%）",
+                "背水の陣（HP30%以下でダメージ+40%）"
+            ],
+            4: [
+                "不屈の魂（致死ダメを1度だけHP1で耐える）",
+                "超リジェネ（毎ターンHP20%回復）",
+                "絶対防御（被ダメ35%軽減）",
+                "魔王の吸血（与ダメの35%HP回復）",
+                "カウンターマスター（被撃時35%で反撃）"
+            ]
         };
 
         function triggerShake(elementId) {
@@ -655,7 +672,7 @@
                     html += `</div></div>`;
                 }
 
-                html += `<div class="buy-area"><div style="font-size:12px; color:#aaa;">枠拡張（アビリティ解放）</div>`;
+                html += `<div class="buy-area"><div style="font-size:12px; color:#aaa;">枠拡張（固有アビリティ解放）</div>`;
                 if (mon.slots.length < MAX_SLOTS) {
                     [1, 2, 3, 4].forEach(star => {
                         const costs = { 1: 300, 2: 600, 3: 1000, 4: 1500 };
@@ -665,7 +682,7 @@
                 } else {
                     mon.slots.forEach((s, sIdx) => {
                         html += `<div class="slot">
-                            <div><strong>★${s.rarity} アビリティ:</strong> <span style="color:#00d2ff;">${s.ability}</span></div>
+                            <div><strong>★${s.rarity} 固有アビリティ:</strong> <span style="color:#00d2ff;">${s.ability}</span></div>
                             <div>
                                 <button class="reroll-btn" onclick="reroll(${monIdx}, ${sIdx})" ${remainingPt < REROLL_COST ? 'disabled' : ''}>🔀 (${REROLL_COST}pt)</button>
                                 <button class="sell-btn" onclick="sellSlot(${monIdx}, ${sIdx})">🗑️ 解除</button>
@@ -680,11 +697,10 @@
             });
         }
 
-        // --- 🔧 修正: ビルド計算とアビリティ倍率適用 ---
+        // --- バトルオブジェクト構築（ステータス＋固有特性フラグ設定） ---
         function calculateFinalStats(mon) {
             if (!mon || mon.slots.length === 0) return null;
             
-            // ベース値 ＋ IV個体値 の基礎データ
             let hp = STAT_BASE.hp + mon.ivs.hp.value;
             let atk = STAT_BASE.atk + mon.ivs.atk.value;
             let def = STAT_BASE.def + mon.ivs.def.value;
@@ -693,28 +709,41 @@
             let critDmg = STAT_BASE.critDmg + mon.ivs.critDmg.value;
             const abilities = [];
 
-            // 各アビリティの効果を判定して適用
+            // 特殊効果フラグ
+            let regenRate = 0;
+            let damageCutRate = 0;
+            let drainRate = 0;
+            let counterRate = 0;
+            let hasEndure = false;
+
             mon.slots.forEach(s => {
                 const ab = s.ability;
                 abilities.push(ab);
 
-                // 数値を安全に抽出
-                const match = ab.match(/\d+/);
-                const val = match ? parseInt(match[0], 10) : 0;
+                if (ab.includes("微再生")) regenRate += 0.03;
+                if (ab.includes("リジェネ") && !ab.includes("ハイ") && !ab.includes("超")) regenRate += 0.07;
+                if (ab.includes("ハイリジェネ")) regenRate += 0.12;
+                if (ab.includes("超リジェネ")) regenRate += 0.20;
 
-                if (ab.includes("攻撃力")) {
-                    atk = Math.round(atk * (1 + val / 100));
-                } else if (ab.includes("HP")) {
-                    hp = Math.round(hp * (1 + val / 100));
-                } else if (ab.includes("防御力")) {
-                    def = Math.round(def * (1 + val / 100));
-                } else if (ab.includes("素早さ")) {
-                    spd = Math.round(spd * (1 + val / 100));
-                } else if (ab.includes("会心率")) {
-                    critRate += val;
-                } else if (ab.includes("会心ダメ")) {
-                    critDmg += val;
-                }
+                if (ab.includes("かすり傷")) damageCutRate += 0.05;
+                if (ab.includes("鉄壁の構え")) damageCutRate += 0.12;
+                if (ab.includes("金剛の盾")) damageCutRate += 0.20;
+                if (ab.includes("絶対防御")) damageCutRate += 0.35;
+
+                if (ab.includes("微弱吸血")) drainRate += 0.05;
+                if (ab.includes("吸血の構え")) drainRate += 0.10;
+                if (ab.includes("強欲の吸血")) drainRate += 0.20;
+                if (ab.includes("魔王の吸血")) drainRate += 0.35;
+
+                if (ab.includes("応戦")) counterRate += 0.05;
+                if (ab.includes("カウンター") && !ab.includes("マスター")) counterRate += 0.15;
+                if (ab.includes("カウンターマスター")) counterRate += 0.35;
+
+                if (ab.includes("鋭利")) critDmg += 15;
+                if (ab.includes("一撃必殺")) critDmg += 50;
+                if (ab.includes("急所突貫")) critRate += 10;
+
+                if (ab.includes("不屈の魂")) hasEndure = true;
             });
 
             return {
@@ -726,7 +755,14 @@
                 spd: spd,
                 critRate: critRate,
                 critDmg: critDmg,
-                abilities: abilities
+                abilities: abilities,
+                // 特性数値
+                regenRate: regenRate,
+                damageCutRate: damageCutRate,
+                drainRate: drainRate,
+                counterRate: counterRate,
+                hasEndure: hasEndure,
+                endureTriggered: false
             };
         }
 
@@ -774,10 +810,11 @@
                     ivs[k] = { value: val };
                 }
 
+                const rarityKey = Math.min(4, Math.max(1, star));
                 const mockMon = {
                     name: `AI-MON ${i + 1}`,
                     ivs: ivs,
-                    slots: [{ rarity: Math.min(4, Math.max(1, star)), ability: ABILITY_POOL[Math.min(4, Math.max(1, star))][0] }]
+                    slots: [{ rarity: rarityKey, ability: ABILITY_POOL[rarityKey][Math.floor(Math.random() * ABILITY_POOL[rarityKey].length)] }]
                 };
                 enemyTeam.push(calculateFinalStats(mockMon));
             }
@@ -828,7 +865,7 @@
             }
         }
 
-        // --- バトルフェーズ管理 ---
+        // --- バトルUI更新 ---
         function updateBattleUI() {
             const pMon = playerTeam[pActiveIdx];
             const eMon = enemyTeam[eActiveIdx];
@@ -855,7 +892,6 @@
             document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
             document.getElementById('e-abilities').innerHTML = eMon.abilities.map(a => `<li>• ${a}</li>`).join('');
 
-            // ボタン表示状態制御
             if (isForcedSwitch) {
                 document.getElementById('turn-status-tag').textContent = "ひんし！交代先を選択してください";
                 document.getElementById('btn-select-attack').disabled = true;
@@ -963,23 +999,16 @@
             document.getElementById('switch-modal').style.display = "none";
         }
 
-        // --- AI思考ルーチン ---
         function decideAIAction() {
             const eMon = enemyTeam[eActiveIdx];
-            const pMon = playerTeam[pActiveIdx];
-
             if (eMon.currentHp <= 0) {
                 const aliveIndices = enemyTeam.map((m, i) => m.currentHp > 0 ? i : -1).filter(i => i !== -1);
                 if (aliveIndices.length > 0) return { type: 'switch', targetIdx: aliveIndices[0] };
             }
 
-            if (aiDifficulty === 'easy') {
-                return { type: 'attack' };
-            }
-
             if (aiDifficulty !== 'easy' && eMon.currentHp / eMon.maxHp < 0.25) {
                 const aliveCandidates = enemyTeam.map((m, i) => (i !== eActiveIdx && m.currentHp / m.maxHp > 0.5) ? i : -1).filter(i => i !== -1);
-                if (aliveCandidates.length > 0 && Math.random() < 0.5) {
+                if (aliveCandidates.length > 0 && Math.random() < 0.4) {
                     return { type: 'switch', targetIdx: aliveCandidates[0] };
                 }
             }
@@ -987,13 +1016,13 @@
             return { type: 'attack' };
         }
 
-        // --- ターン実行処理 ---
         function checkExecuteTurn() {
             if (isMyTurnConfirmed && isOpponentTurnConfirmed) {
                 executeTurn(myTurnChoice, enemySelectedAction);
             }
         }
 
+        // --- ターン実行処理（固有アビリティ反映） ---
         function executeTurn(pAction, eAction) {
             let pFirst = playerTeam[pActiveIdx].spd >= enemyTeam[eActiveIdx].spd;
             if (playerTeam[pActiveIdx].spd === enemyTeam[eActiveIdx].spd) pFirst = Math.random() < 0.5;
@@ -1033,6 +1062,10 @@
                 }
             }
 
+            // ターン終了時：リジェネ（自動回復）の発動処理
+            applyEndTurnRegen('player');
+            applyEndTurnRegen('enemy');
+
             updateBattleUI();
             resetTurnSelection();
 
@@ -1050,28 +1083,73 @@
             }
         }
 
+        function applyEndTurnRegen(side) {
+            const mon = side === 'player' ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
+            const name = side === 'player' ? playerName : enemyPlayerName;
+
+            if (mon.currentHp > 0 && mon.regenRate > 0 && mon.currentHp < mon.maxHp) {
+                const healVal = Math.round(mon.maxHp * mon.regenRate);
+                mon.currentHp = Math.min(mon.maxHp, mon.currentHp + healVal);
+                logBattle(`<span class="log-system">✨ ${name} (${mon.name}) の再生能力！ HPが ${healVal} 回復！</span>`);
+            }
+        }
+
         function performAttack(attackerSide) {
             const attacker = attackerSide === 'player' ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
             const defender = attackerSide === 'player' ? enemyTeam[eActiveIdx] : playerTeam[pActiveIdx];
             const defenderBoxId = attackerSide === 'player' ? 'enemy-card-box' : 'player-card-box';
+            const attackerName = attackerSide === 'player' ? playerName : enemyPlayerName;
+            const defenderName = attackerSide === 'player' ? enemyPlayerName : playerName;
 
             triggerShake(defenderBoxId);
 
             let baseDamage = Math.max(10, Math.floor(attacker.atk * 1.5 - defender.def * 0.6));
             
+            // 背水の陣判定（HP30%以下で特大ダメージ）
+            if (attacker.abilities.some(a => a.includes("背水の陣")) && (attacker.currentHp / attacker.maxHp) <= 0.3) {
+                baseDamage = Math.round(baseDamage * 1.4);
+            }
+
+            // 会心判定
             const isCrit = (Math.random() * 100) < attacker.critRate;
             if (isCrit) {
                 baseDamage = Math.round(baseDamage * (1.5 + attacker.critDmg / 100));
             }
 
             const randomMult = 0.85 + Math.random() * 0.3;
-            const finalDamage = Math.max(1, Math.round(baseDamage * randomMult));
+            let finalDamage = Math.max(1, Math.round(baseDamage * randomMult));
 
-            defender.currentHp -= finalDamage;
+            // 防御系アビリティ：ダメージ軽減
+            if (defender.damageCutRate > 0) {
+                finalDamage = Math.max(1, Math.round(finalDamage * (1 - defender.damageCutRate)));
+            }
 
-            const critTxt = isCrit ? `<span class="log-crit"> 💥 急所に当たった！</span>` : '';
-            const attackerName = attackerSide === 'player' ? playerName : enemyPlayerName;
-            logBattle(`<span class="log-attack">${attackerName} (${attacker.name})</span> の攻撃！ ${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
+            // 不屈の魂（致死ダメージを1で耐える）
+            if (defender.currentHp - finalDamage <= 0 && defender.hasEndure && !defender.endureTriggered) {
+                defender.currentHp = 1;
+                defender.endureTriggered = true;
+                const critTxt = isCrit ? `<span class="log-crit"> 💥 急所に当たった！</span>` : '';
+                logBattle(`<span class="log-attack">${attackerName} (${attacker.name})</span> の攻撃！ ${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
+                logBattle(`<span class="log-system">🔥 ${defenderName} (${defender.name}) は 不屈の魂 で耐えた！ (HP: 1)</span>`);
+            } else {
+                defender.currentHp -= finalDamage;
+                const critTxt = isCrit ? `<span class="log-crit"> 💥 急所に当たった！</span>` : '';
+                logBattle(`<span class="log-attack">${attackerName} (${attacker.name})</span> の攻撃！ ${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
+            }
+
+            // 吸血アビリティ処理
+            if (attacker.drainRate > 0 && attacker.currentHp < attacker.maxHp) {
+                const drainVal = Math.round(finalDamage * attacker.drainRate);
+                attacker.currentHp = Math.min(attacker.maxHp, attacker.currentHp + drainVal);
+                logBattle(`<span class="log-system">🩸 ${attackerName} (${attacker.name}) は攻撃から HP ${drainVal} を吸血回復！</span>`);
+            }
+
+            // カウンター（反撃）アビリティ処理
+            if (defender.currentHp > 0 && defender.counterRate > 0 && Math.random() < defender.counterRate) {
+                const counterDmg = Math.max(1, Math.round(defender.atk * 0.5));
+                attacker.currentHp -= counterDmg;
+                logBattle(`<span class="log-damage">⚡ ${defenderName} (${defender.name}) の反撃！ ${attackerName} に ${counterDmg} のダメージ！</span>`);
+            }
         }
 
         function checkGameEnd() {
