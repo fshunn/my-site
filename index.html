@@ -415,21 +415,18 @@
 
         const ABILITY_POOL = {
             1: [
-                "微再生（毎ターンHP5%回復）", 
                 "かすり傷（被ダメ5%軽減）", 
                 "微弱吸血（与ダメージの10%HP回復）", 
                 "鋭利（会心ダメージ+15%）",
                 "切創（攻撃時:出血+1 [各スタック2T持続/被ダメ+15%]）"
             ],
             2: [
-                "リジェネ（毎ターンHP10%回復）", 
                 "鉄壁の構え（被ダメ12%軽減）", 
                 "吸血の構え（与ダメージの20%HP回復）", 
                 "急所突貫（会心率+10%）",
                 "毒針（攻撃時:毒+1 [各スタック2T持続/毎T最大HP4%ダメ]）"
             ],
             3: [
-                "ハイリジェネ（毎ターンHP20%回復）", 
                 "金剛の盾（被ダメ20%軽減）", 
                 "強欲の吸血（与ダメージの35%HP回復）", 
                 "一撃必殺（会心ダメージ+50%）",
@@ -1290,19 +1287,6 @@
 
         async function applyEndTurnEffects(mon) {
             if (mon.hp <= 0) return;
-
-            mon.abilities.forEach(abi => {
-                let healPercent = 0;
-                if (abi.includes("微再生")) healPercent = 0.05;
-                if (abi.includes("リジェネ") && !abi.includes("ハイ")) healPercent = 0.10;
-                if (abi.includes("ハイリジェネ")) healPercent = 0.20;
-
-                if (healPercent > 0) {
-                    let heal = Math.round(mon.maxHp * healPercent);
-                    mon.hp = Math.min(mon.maxHp, mon.hp + heal);
-                    logMessage(`💖 ${mon.name} は再生アビリティで HP を <span class="log-heal">${heal}</span> 回復した！`, 'log-heal');
-                }
-            });
 
             if (mon.poisonDebuffs.length > 0 && mon.hp > 0) {
                 let poisonDmg = Math.round(mon.maxHp * 0.04 * mon.poisonDebuffs.length);
