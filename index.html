@@ -445,7 +445,7 @@
                 delete mon.locks[type];
             } else {
                 if (getLockedCount(mon) >= MAX_TOTAL_LOCKS) {
-                    return; // 2個以上の場合は選択不可
+                    return;
                 }
                 mon.locks[type] = true;
             }
@@ -519,14 +519,22 @@
                         const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
                         
                         /* 
-                         * 【核心修正部】
-                         * ロック数が上限（2個）に達している場合、
-                         * 未選択（未ロック＆未OC）の項目のチェックボックス要素そのものをDOMから完全削除（未描画）にする。
-                         * 既存選択の解除が行われて上限が解除された場合、自動的に再描画されて出現する。
+                         * 【完全に書き換えた最重要修正部】
+                         * 2個選択された状態（isMaxReached = true）の時、
+                         * 選択されていない（isLocked でも isOC でもない）項目の「チェックボックス要素そのもの（<label>ごと）」を
+                         * DOM出力から除外（消去）します。
+                         * 選択解除されると isMaxReached が false になり、消滅していた項目がDOM上に再出現します。
                          */
                         let lockCheckboxHTML = "";
-                        if (!isMaxReached || isLocked) {
-                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
+                        if (isLocked) {
+                            // 選択済みの項目：選択中のチェックボックスを表示（解除操作用）
+                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" checked ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
+                        } else if (!isMaxReached) {
+                            // 2個未満の時：未選択のチェックボックスを表示
+                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
+                        } else {
+                            // 2個選択に達した時：未選択のチェックボックスはDOMから消去（何も出力しない）
+                            lockCheckboxHTML = "";
                         }
 
                         ivGridHTML += `
