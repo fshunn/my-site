@@ -73,13 +73,69 @@
         .rank-C { color: #888; }
 
         .lock-label { font-size: 11px; color: #aaa; cursor: pointer; user-select: none; display: flex; align-items: center; margin-right: 4px; }
-        button { padding: 6px 10px; margin: 2px; cursor: pointer; font-size: 13px; border-radius: 4px; border: none; background: #007bff; color: white; }
-        button:hover:not(:disabled) { opacity: 0.9; }
-        button:disabled { background: #444 !important; color: #777 !important; cursor: not-allowed; }
+
+        /* --- ボタン共通スタイル & 活性/無効状態の視覚強化 --- */
+        button { 
+            padding: 6px 12px; 
+            margin: 2px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: bold;
+            border-radius: 6px; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            background: linear-gradient(180deg, #0088ff 0%, #0055cc 100%); 
+            color: white; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.15s ease;
+        }
+        button:hover:not(:disabled) { 
+            filter: brightness(1.15); 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
         
-        button.reroll-btn { background: #ff9800; color: #000; font-weight: bold; }
-        button.iv-reroll-btn { background: #9c27b0; color: #fff; font-weight: bold; padding: 4px 10px; font-size: 12px; }
-        button.overclock-btn { background: #e91e63; color: #fff; font-size: 11px; padding: 4px 8px; font-weight: bold; }
+        /* 押し不可（無効化）ボタンの明確なビジュアル表現 */
+        button:disabled { 
+            background: #2a2a2a !important; 
+            color: #555 !important; 
+            border: 1px solid #333 !important;
+            box-shadow: none !important;
+            cursor: not-allowed !important; 
+            opacity: 0.35 !important;
+            transform: none !important;
+            filter: grayscale(100%) !important;
+            text-decoration: line-through;
+        }
+
+        /* アクション別ボタンのカラー指定 */
+        button.unlock-btn {
+            background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%);
+            border-color: #4caf50;
+        }
+        button.reroll-btn { 
+            background: linear-gradient(180deg, #ff9800 0%, #e65100 100%); 
+            color: #fff; 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            border-color: #ffb74d;
+        }
+        button.iv-reroll-btn { 
+            background: linear-gradient(180deg, #ab47bc 0%, #6a1b9a 100%); 
+            color: #fff; 
+            padding: 5px 12px; 
+            font-size: 12px; 
+            border-color: #ce93d8;
+        }
+        button.overclock-btn { 
+            background: linear-gradient(180deg, #ec407a 0%, #ad1457 100%); 
+            color: #fff; 
+            font-size: 11px; 
+            padding: 4px 8px; 
+            border-color: #f48fb1;
+        }
 
         .buy-area { background: #202020; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
         .slot { border: 1px solid #555; padding: 8px 12px; margin-top: 8px; border-radius: 6px; background: #333; display: flex; align-items: center; justify-content: space-between; }
@@ -114,8 +170,8 @@
         .action-area { text-align: center; margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .btn-group { display: flex; gap: 10px; }
         .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; }
-        .btn-attack { background: #ff9800; color: #000; }
-        .btn-confirm { background: #4caf50; color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
+        .btn-attack { background: linear-gradient(180deg, #ff9800 0%, #e65100 100%); color: #fff; }
+        .btn-confirm { background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%); color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
 
         .turn-status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; }
     </style>
@@ -172,7 +228,7 @@
 
         <div id="monsters-container"></div>
 
-        <button id="finish-build-btn" style="width: 100%; padding: 16px; font-size: 18px; background: #e91e63; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 40px;" onclick="finishBuild()">
+        <button id="finish-build-btn" style="width: 100%; padding: 16px; font-size: 18px; background: linear-gradient(180deg, #e91e63 0%, #ad1457 100%); font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 40px;" onclick="finishBuild()">
             ⚔️ ビルド完了！バトル待合室へ
         </button>
     </div>
@@ -477,27 +533,36 @@
             const container = document.getElementById('monsters-container');
             container.innerHTML = "";
 
+            const currentStarsTotal = getPartyTotalStars();
+
             monsters.forEach((mon, monIdx) => {
                 const card = document.createElement('div');
                 card.className = "monster-card";
 
                 let slotsHTML = "";
                 if (mon.slots.length === 0) {
+                    // コイン所持量・星の所持上限に準じた購入ボタンの動的有効/無効制御
+                    const b1Disabled = (remainingPt < 300 || currentStarsTotal + 1 > MAX_PARTY_STARS) ? 'disabled' : '';
+                    const b2Disabled = (remainingPt < 600 || currentStarsTotal + 2 > MAX_PARTY_STARS) ? 'disabled' : '';
+                    const b3Disabled = (remainingPt < 1000 || currentStarsTotal + 3 > MAX_PARTY_STARS) ? 'disabled' : '';
+                    const b4Disabled = (remainingPt < 1500 || currentStarsTotal + 4 > MAX_PARTY_STARS) ? 'disabled' : '';
+
                     slotsHTML = `
                         <div class="buy-area">
                             <div style="font-size:12px; color:#aaa; margin-bottom:5px;">枠を選択して購入:</div>
-                            <button onclick="buySlot(${monIdx}, 1, 300)">★1 開放 (300pt)</button>
-                            <button onclick="buySlot(${monIdx}, 2, 600)">★2 開放 (600pt)</button>
-                            <button onclick="buySlot(${monIdx}, 3, 1000)">★3 開放 (1000pt)</button>
-                            <button onclick="buySlot(${monIdx}, 4, 1500)">★4 開放 (1500pt)</button>
+                            <button class="unlock-btn" onclick="buySlot(${monIdx}, 1, 300)" ${b1Disabled}>★1 開放 (300pt)</button>
+                            <button class="unlock-btn" onclick="buySlot(${monIdx}, 2, 600)" ${b2Disabled}>★2 開放 (600pt)</button>
+                            <button class="unlock-btn" onclick="buySlot(${monIdx}, 3, 1000)" ${b3Disabled}>★3 開放 (1000pt)</button>
+                            <button class="unlock-btn" onclick="buySlot(${monIdx}, 4, 1500)" ${b4Disabled}>★4 開放 (1500pt)</button>
                         </div>
                     `;
                 } else {
                     mon.slots.forEach((s, sIdx) => {
+                        const canRerollAbi = remainingPt >= REROLL_COST;
                         slotsHTML += `
                             <div class="slot">
                                 <div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div>
-                                <button class="reroll-btn" onclick="rerollAbility(${monIdx}, ${sIdx})">🎲 変更 (${REROLL_COST}pt)</button>
+                                <button class="reroll-btn" onclick="rerollAbility(${monIdx}, ${sIdx})" ${canRerollAbi ? '' : 'disabled'}>🎲 変更 (${REROLL_COST}pt)</button>
                             </div>
                         `;
                     });
@@ -510,6 +575,7 @@
                     
                     const currentLockedTotal = getLockedCount(mon);
                     const isMaxReached = currentLockedTotal >= MAX_TOTAL_LOCKS;
+                    const canRerollIV = remainingPt >= IV_REROLL_COST;
 
                     for (let type in STAT_CONFIG) {
                         const conf = STAT_CONFIG[type];
@@ -518,24 +584,17 @@
                         const isOC = !!mon.overclockedStats[type];
                         const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
                         
-                        /* 
-                         * 【完全に書き換えた最重要修正部】
-                         * 2個選択された状態（isMaxReached = true）の時、
-                         * 選択されていない（isLocked でも isOC でもない）項目の「チェックボックス要素そのもの（<label>ごと）」を
-                         * DOM出力から除外（消去）します。
-                         * 選択解除されると isMaxReached が false になり、消滅していた項目がDOM上に再出現します。
-                         */
                         let lockCheckboxHTML = "";
                         if (isLocked) {
-                            // 選択済みの項目：選択中のチェックボックスを表示（解除操作用）
                             lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" checked ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
                         } else if (!isMaxReached) {
-                            // 2個未満の時：未選択のチェックボックスを表示
                             lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
                         } else {
-                            // 2個選択に達した時：未選択のチェックボックスはDOMから消去（何も出力しない）
                             lockCheckboxHTML = "";
                         }
+
+                        // オーバークロックボタンの各種判定（1回のみ/残高/ロック枠空き）
+                        const isOcDisabled = mon.hasOverclocked || (isMaxReached && !isOC) || remainingPt < ocCost;
 
                         ivGridHTML += `
                             <div class="iv-item">
@@ -546,7 +605,7 @@
                                 </div>
                                 <div style="display:flex; align-items:center;">
                                     ${lockCheckboxHTML}
-                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${mon.hasOverclocked || (isMaxReached && !isOC) ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
+                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${isOcDisabled ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
                                 </div>
                             </div>
                         `;
@@ -556,7 +615,7 @@
                         <div class="iv-container">
                             <div class="iv-header">
                                 <span style="font-size:12px; font-weight:bold; color:#ffeb3b;">📊 個体値ステータス</span>
-                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})">🎲 全再抽選 (${IV_REROLL_COST}pt)</button>
+                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${canRerollIV ? '' : 'disabled'}>🎲 全再抽選 (${IV_REROLL_COST}pt)</button>
                             </div>
                             <div class="iv-grid">${ivGridHTML}</div>
                         </div>
