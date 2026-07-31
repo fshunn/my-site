@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 常アップデート版</title>
+    <title>STAR FORGE - 個別スタック独立管理版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -127,7 +127,6 @@
         .hp-bar-container { background: #444; border-radius: 10px; height: 16px; width: 100%; margin: 10px 0; overflow: hidden; }
         .hp-bar-fill { background: #4caf50; height: 100%; width: 100%; transition: width 0.4s ease; }
 
-        /* 状態異常表示の機能拡張 */
         .status-badge-container { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; font-size: 11px; font-weight: bold; flex-wrap: wrap; }
         .badge-poison { background: #4a148c; color: #ea80fc; padding: 3px 8px; border-radius: 4px; border: 1px solid #ea80fc; }
         .badge-bleed { background: #880e4f; color: #ff80ab; padding: 3px 8px; border-radius: 4px; border: 1px solid #ff80ab; }
@@ -250,7 +249,6 @@
                 <div id="display-player-name" style="color: #00d2ff; font-size: 12px; font-weight: bold;">[YOU]</div>
                 <h3 id="p-mon-name">---</h3>
                 
-                <!-- 状態異常バッジエリア（詳細テキスト付き） -->
                 <div id="p-status-badges" class="status-badge-container"></div>
 
                 <div class="hp-bar-container"><div id="p-hp-bar" class="hp-bar-fill"></div></div>
@@ -269,7 +267,6 @@
                 <div id="display-enemy-name" style="color: #ff1744; font-size: 12px; font-weight: bold;">[ENEMY]</div>
                 <h3 id="e-mon-name">---</h3>
 
-                <!-- 状態異常バッジエリア（詳細テキスト付き） -->
                 <div id="e-status-badges" class="status-badge-container"></div>
 
                 <div class="hp-bar-container"><div id="e-hp-bar" class="hp-bar-fill"></div></div>
@@ -364,36 +361,36 @@
 
         const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
 
-        // 🟢 アビリティ名に「ゲーム内の具体的なテキスト説明」を標準付属
+        // 🟢 各スタックが独立して2ターン持続することが伝わる表現にテキストを統一
         const ABILITY_POOL = {
             1: [
                 "微再生（毎ターンHP5%回復）", 
                 "かすり傷（被ダメ5%軽減）", 
                 "微弱吸血（与ダメージの10%HP回復）", 
                 "鋭利（会心ダメージ+15%）",
-                "切創（攻撃時:相手に出血+1 [次被ダメ+15%]）"
+                "切創（攻撃時:出血+1 [各スタック2T持続/被ダメ+15%]）"
             ],
             2: [
                 "リジェネ（毎ターンHP10%回復）", 
                 "鉄壁の構え（被ダメ12%軽減）", 
                 "吸血の構え（与ダメージの20%HP回復）", 
                 "急所突貫（会心率+10%）",
-                "毒針（攻撃時:相手に毒+1 [毎T最大HP4%ダメ]）"
+                "毒針（攻撃時:毒+1 [各スタック2T持続/毎T最大HP4%ダメ]）"
             ],
             3: [
                 "ハイリジェネ（毎ターンHP20%回復）", 
                 "金剛の盾（被ダメ20%軽減）", 
                 "強欲の吸血（与ダメージの35%HP回復）", 
                 "一撃必殺（会心ダメージ+50%）",
-                "劇薬（攻撃時:相手に毒+2 [毎T最大HP8%ダメ]）",
-                "深手（攻撃時:相手に出血+2 [次被ダメ+30%]）"
+                "劇薬（攻撃時:毒+2 [各スタック2T持続/毎T最大HP4%ダメ]）",
+                "深手（攻撃時:出血+2 [各スタック2T持続/被ダメ+15%]）"
             ],
             4: [
                 "不屈の魂（致死ダメを1度だけHP1で耐える）", 
                 "絶対防御（被ダメ35%軽減）", 
                 "魔王の吸血（与ダメージの50%HP回復）",
-                "猛毒結界（攻撃時:相手に毒+3 [毎T最大HP12%ダメ]）",
-                "血の惨劇（攻撃時:相手に出血+3 [次被ダメ+45%]）"
+                "猛毒結界（攻撃時:毒+3 [各スタック2T持続/毎T最大HP4%ダメ]）",
+                "血の惨劇（攻撃時:出血+3 [各スタック2T持続/被ダメ+15%]）"
             ]
         };
 
@@ -703,8 +700,9 @@
                 critDmg: STAT_BASE.critDmg + mon.ivs.critDmg.value + extraCritDmg,
                 abilities: mon.slots.map(s => s.ability),
                 hasEndured: false,
-                poisonStacks: 0,
-                bleedStacks: 0
+                // 🟢 単一の数ではなく「残りターン数を持ったオブジェクトの配列」で個別管理
+                poisonDebuffs: [], // 例: [{ turns: 2 }, { turns: 1 }]
+                bleedDebuffs: []   // 例: [{ turns: 2 }]
             };
         }
 
@@ -761,6 +759,27 @@
             }
         }
 
+        // 🟢 状態異常バッジの表示ヘルパー（各残りターン数ごとの内訳を表示）
+        function getDebuffBadgeHTML(debuffArray, type) {
+            if (!debuffArray || debuffArray.length === 0) return "";
+            const count = debuffArray.length;
+            
+            // 残り1Tと残り2Tの個数を集計
+            const t1 = debuffArray.filter(d => d.turns === 1).length;
+            const t2 = debuffArray.filter(d => d.turns === 2).length;
+            let detailStr = [];
+            if (t1 > 0) detailStr.push(`残1T:${t1}`);
+            if (t2 > 0) detailStr.push(`残2T:${t2}`);
+
+            if (type === 'poison') {
+                const poisonPct = count * 4;
+                return `<span class="badge-poison">☠️ 毒x${count} (${poisonPct}%/ ${detailStr.join(' ')})</span>`;
+            } else {
+                const bleedPct = count * 15;
+                return `<span class="badge-bleed">🩸 出血x${count} (+${bleedPct}%/ ${detailStr.join(' ')})</span>`;
+            }
+        }
+
         function updateBattleDisplay() {
             const pMon = playerTeam[pActiveIdx];
             const eMon = enemyTeam[eActiveIdx];
@@ -775,16 +794,8 @@
             document.getElementById('p-crit-rate').textContent = pMon.critRate;
             document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
 
-            // 🟢 自分の状態異常（スタック数 & 効果テキスト表示）
-            let pBadgesHTML = "";
-            if (pMon.poisonStacks > 0) {
-                const poisonDamagePct = pMon.poisonStacks * 4;
-                pBadgesHTML += `<span class="badge-poison">☠️ 毒x${pMon.poisonStacks} (毎T ${poisonDamagePct}%ダメ)</span>`;
-            }
-            if (pMon.bleedStacks > 0) {
-                const bleedMultiplierPct = pMon.bleedStacks * 15;
-                pBadgesHTML += `<span class="badge-bleed">🩸 出血x${pMon.bleedStacks} (次被ダメ+${bleedMultiplierPct}%)</span>`;
-            }
+            // 🟢 自分の状態異常バッジ
+            let pBadgesHTML = getDebuffBadgeHTML(pMon.poisonDebuffs, 'poison') + getDebuffBadgeHTML(pMon.bleedDebuffs, 'bleed');
             document.getElementById('p-status-badges').innerHTML = pBadgesHTML;
 
             document.getElementById('p-abilities').innerHTML = pMon.abilities.length > 0 
@@ -800,16 +811,8 @@
             document.getElementById('e-crit-rate').textContent = eMon.critRate;
             document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
 
-            // 🟢 相手の状態異常（スタック数 & 効果テキスト表示）
-            let eBadgesHTML = "";
-            if (eMon.poisonStacks > 0) {
-                const poisonDamagePct = eMon.poisonStacks * 4;
-                eBadgesHTML += `<span class="badge-poison">☠️ 毒x${eMon.poisonStacks} (毎T ${poisonDamagePct}%ダメ)</span>`;
-            }
-            if (eMon.bleedStacks > 0) {
-                const bleedMultiplierPct = eMon.bleedStacks * 15;
-                eBadgesHTML += `<span class="badge-bleed">🩸 出血x${eMon.bleedStacks} (次被ダメ+${bleedMultiplierPct}%)</span>`;
-            }
+            // 🟢 相手の状態異常バッジ
+            let eBadgesHTML = getDebuffBadgeHTML(eMon.poisonDebuffs, 'poison') + getDebuffBadgeHTML(eMon.bleedDebuffs, 'bleed');
             document.getElementById('e-status-badges').innerHTML = eBadgesHTML;
 
             document.getElementById('e-abilities').innerHTML = eMon.abilities.length > 0 
@@ -984,7 +987,7 @@
                 }
             }
 
-            // 🟢 ターン終了処理：リジェネ回復 & 毒スリップダメージの適用
+            // 🟢 ターン終了処理（各スタックの個別の持続カウントダウンと時間切れ処理）
             await applyEndTurnEffects(playerTeam[pActiveIdx]);
             if (await checkFaintedState()) { isProcessingTurn = false; return; }
 
@@ -1013,12 +1016,13 @@
                 if (abi.includes("絶対防御")) baseDmg *= 0.65;
             });
 
-            // 🟢 出血の計算（スタック数 × 15% のダメージ増加を反映し消費）
-            if (defender.bleedStacks > 0) {
-                let bleedMultiplier = 1 + (defender.bleedStacks * 0.15);
+            // 🟢 出血の計算（すべての既存スタックを消費して被ダメ上昇）
+            if (defender.bleedDebuffs.length > 0) {
+                let stackCount = defender.bleedDebuffs.length;
+                let bleedMultiplier = 1 + (stackCount * 0.15);
                 baseDmg *= bleedMultiplier;
-                logMessage(`🩸 ${defender.name} は出血（x${defender.bleedStacks}）により被ダメージが ${Math.round((bleedMultiplier-1)*100)}% 増加！`, 'log-bleed');
-                defender.bleedStacks = 0; // 攻撃を受けるとリセットされる
+                logMessage(`🩸 ${defender.name} は出血（x${stackCount}）により被ダメージが ${Math.round((bleedMultiplier-1)*100)}% 増加！`, 'log-bleed');
+                defender.bleedDebuffs = []; // 被攻撃で全消費
             }
 
             let dmg = Math.round(baseDmg);
@@ -1047,25 +1051,28 @@
                     logMessage(`🩸 ${attacker.name} は吸血アビリティで HP を <span class="log-heal">${drainHeal}</span> 回復した！`, 'log-heal');
                 }
 
-                // 毒付与
                 if (abi.includes("毒針")) addedPoison += 1;
                 if (abi.includes("劇薬")) addedPoison += 2;
                 if (abi.includes("猛毒結界")) addedPoison += 3;
 
-                // 出血付与
                 if (abi.includes("切創")) addedBleed += 1;
                 if (abi.includes("深手")) addedBleed += 2;
                 if (abi.includes("血の惨劇")) addedBleed += 3;
             });
 
+            // 🟢 付与された数だけ、それぞれ独立して「残り2ターン」のスタックオブジェクトを追加
             if (addedPoison > 0) {
-                defender.poisonStacks += addedPoison;
-                logMessage(`☠️ ${defender.name} に毒が ${addedPoison} 付与された！（現在: x${defender.poisonStacks} / 毎ターン最大HP ${defender.poisonStacks * 4}%ダメ）`, 'log-poison');
+                for (let i = 0; i < addedPoison; i++) {
+                    defender.poisonDebuffs.push({ turns: 2 });
+                }
+                logMessage(`☠️ ${defender.name} に毒が ${addedPoison} スタック付与された！（現在:合計x${defender.poisonDebuffs.length}）`, 'log-poison');
             }
 
             if (addedBleed > 0) {
-                defender.bleedStacks += addedBleed;
-                logMessage(`🩸 ${defender.name} に出血が ${addedBleed} 付与された！（現在: x${defender.bleedStacks} / 次被ダメ +${defender.bleedStacks * 15}%）`, 'log-bleed');
+                for (let i = 0; i < addedBleed; i++) {
+                    defender.bleedDebuffs.push({ turns: 2 });
+                }
+                logMessage(`🩸 ${defender.name} に出血が ${addedBleed} スタック付与された！（現在:合計x${defender.bleedDebuffs.length}）`, 'log-bleed');
             }
 
             // 不屈の魂チェック
@@ -1123,11 +1130,11 @@
             return true;
         }
 
-        // 🟢 ターン終了時処理（再生 & 毒スリップダメージ）
+        // 🟢 ターン終了処理：スタックごとの独立した2ターン経過管理・段階解除
         async function applyEndTurnEffects(mon) {
             if (mon.hp <= 0) return;
 
-            // 1. 再生アビリティの回復
+            // 1. 再生アビリティ
             mon.abilities.forEach(abi => {
                 let healPercent = 0;
                 if (abi.includes("微再生")) healPercent = 0.05;
@@ -1141,13 +1148,39 @@
                 }
             });
 
-            // 2. 毒スリップダメージ（1スタックあたり最大HPの4%分）
-            if (mon.poisonStacks > 0 && mon.hp > 0) {
-                let poisonDmg = Math.round(mon.maxHp * 0.04 * mon.poisonStacks);
+            // 2. 毒スリップダメージ & 個別スタック減算
+            if (mon.poisonDebuffs.length > 0 && mon.hp > 0) {
+                let poisonDmg = Math.round(mon.maxHp * 0.04 * mon.poisonDebuffs.length);
                 mon.hp -= poisonDmg;
-                logMessage(`☠️ ${mon.name} は毒（x${mon.poisonStacks}）のダメージにより <span class="log-damage">${poisonDmg}</span> のダメージ！（最大HPの${mon.poisonStacks * 4}%）`, 'log-poison');
+                logMessage(`☠️ ${mon.name} は毒（x${mon.poisonDebuffs.length}）のダメージにより <span class="log-damage">${poisonDmg}</span> のダメージ！`, 'log-poison');
+                
+                // 全毒スタックの持続ターンを1減らす
+                mon.poisonDebuffs.forEach(d => d.turns -= 1);
+
+                // 2ターン経過した（残りターン数0になった）スタックの数をカウントして除去
+                const expiredCount = mon.poisonDebuffs.filter(d => d.turns <= 0).length;
+                mon.poisonDebuffs = mon.poisonDebuffs.filter(d => d.turns > 0);
+
+                if (expiredCount > 0) {
+                    logMessage(`✨ ${mon.name} の毒が ${expiredCount} スタック解けた！（残り: x${mon.poisonDebuffs.length}）`, 'log-system');
+                }
+
                 updateBattleDisplay();
                 await sleep(400);
+            }
+
+            // 3. 出血の個別スタック減算（攻撃を受けずに2ターン経過したスタックのみ消滅）
+            if (mon.bleedDebuffs.length > 0 && mon.hp > 0) {
+                mon.bleedDebuffs.forEach(d => d.turns -= 1);
+
+                const expiredCount = mon.bleedDebuffs.filter(d => d.turns <= 0).length;
+                mon.bleedDebuffs = mon.bleedDebuffs.filter(d => d.turns > 0);
+
+                if (expiredCount > 0) {
+                    logMessage(`✨ ${mon.name} の出血が ${expiredCount} スタック解けた！（残り: x${mon.bleedDebuffs.length}）`, 'log-system');
+                }
+
+                updateBattleDisplay();
             }
         }
     </script>
