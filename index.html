@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 割合回復調整版</title>
+    <title>STAR FORGE - バグ修正版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -349,12 +349,11 @@
 
         const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
 
-        // ★回復系を実数値から高め割合回復へ調整！
         const ABILITY_POOL = {
-            1: ["微再生（毎ターンHP5%回復）", "かすり傷（被ダメ5%軽減）", "微弱吸血（与ダメの10%HP回復）", "鋭利（会心ダメージ+15%）"],
-            2: ["リジェネ（毎ターンHP10%回復）", "鉄壁の構え（被ダメ12%軽減）", "吸血の構え（与ダメの20%HP回復）", "急所突貫（会心率+10%）"],
-            3: ["ハイリジェネ（毎ターンHP20%回復）", "金剛の盾（被ダメ20%軽減）", "強欲の吸血（与ダメの35%HP回復）", "一撃必殺（会心ダメージ+50%）"],
-            4: ["不屈の魂（致死ダメを1度だけHP1で耐える）", "超リジェネ（毎ターンHP35%回復）", "絶対防御（被ダメ35%軽減）", "魔王の吸血（与ダメの50%HP回復）"]
+            1: ["微再生（毎ターンHP5%回復）", "かすり傷（被ダメ5%軽減）", "微弱吸血（与ダメージの10%HP回復）", "鋭利（会心ダメージ+15%）"],
+            2: ["リジェネ（毎ターンHP10%回復）", "鉄壁の構え（被ダメ12%軽減）", "吸血の構え（与ダメージの20%HP回復）", "急所突貫（会心率+10%）"],
+            3: ["ハイリジェネ（毎ターンHP20%回復）", "金剛の盾（被ダメ20%軽減）", "強欲の吸血（与ダメージの35%HP回復）", "一撃必殺（会心ダメージ+50%）"],
+            4: ["不屈の魂（致死ダメを1度だけHP1で耐える）", "超リジェネ（毎ターンHP35%回復）", "絶対防御（被ダメ35%軽減）", "魔王の吸血（与ダメージの50%HP回復）"]
         };
 
         function joinLobby(role) {
@@ -918,8 +917,9 @@
                 }
             }
 
-            applyEndTurnAbilities(playerTeam[pActiveIdx], true);
-            applyEndTurnAbilities(enemyTeam[eActiveIdx], false);
+            // ターン終了時の個別に適用
+            applyEndTurnAbilities(playerTeam[pActiveIdx]);
+            applyEndTurnAbilities(enemyTeam[eActiveIdx]);
 
             updateBattleDisplay();
 
@@ -950,7 +950,7 @@
 
             logMessage(`${attacker.name} の攻撃！ ${isCrit ? '<span class="log-crit">💥 会心の一撃！</span>' : ''} ${defender.name} に <span class="log-damage">${dmg}</span> のダメージ！`, 'log-attack');
 
-            // ★吸血アビリティの計算（ダメージに応じた割合回復）
+            // 修正箇所：攻撃者（attacker）本人のアビリティだけを判定して自分自身を回復
             attacker.abilities.forEach(abi => {
                 let drainPercent = 0;
                 if (abi.includes("微弱吸血")) drainPercent = 0.10;
@@ -1019,8 +1019,8 @@
             return true;
         }
 
-        // ★リジェネ（再生）アビリティの計算（最大HPに応じた割合回復）
-        function applyEndTurnAbilities(mon, isPlayer) {
+        // リジェネ（再生）アビリティの計算
+        function applyEndTurnAbilities(mon) {
             if (mon.hp <= 0) return;
             mon.abilities.forEach(abi => {
                 let healPercent = 0;
