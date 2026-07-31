@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - マルチアビリティ同期・修正版 (Ver 7.4)</title>
+    <title>STAR FORGE - 画面揺れ演出復活＆マルチ同期版 (Ver 7.5)</title>
     <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -11,18 +11,19 @@
         .spinner { border: 4px solid #333; border-top: 4px solid #00d2ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* 画面・カードの揺れアニメーション */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); background-color: #2a2a2a; }
-            10% { transform: translate(-3px, -2px) rotate(-1deg); background-color: #5a1a1a; }
-            20% { transform: translate(-4px, 0px) rotate(1deg); }
-            30% { transform: translate(4px, 2px) rotate(0deg); background-color: #6a1a1a; }
-            40% { transform: translate(2px, -1px) rotate(1deg); }
-            50% { transform: translate(-2px, 2px) rotate(-1deg); background-color: #4a1a1a; }
-            60% { transform: translate(-4px, 1px) rotate(0deg); }
-            70% { transform: translate(4px, 1px) rotate(-1deg); }
-            80% { transform: translate(-2px, -1px) rotate(1deg); }
-            90% { transform: translate(2px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(0deg); background-color: #2a2a2a; }
+            10% { transform: translate(-5px, -3px) rotate(-1deg); background-color: #5a1a1a; }
+            20% { transform: translate(-6px, 0px) rotate(1deg); }
+            30% { transform: translate(6px, 3px) rotate(0deg); background-color: #6a1a1a; }
+            40% { transform: translate(3px, -1px) rotate(1deg); }
+            50% { transform: translate(-3px, 3px) rotate(-1deg); background-color: #4a1a1a; }
+            60% { transform: translate(-5px, 1px) rotate(0deg); }
+            70% { transform: translate(5px, 1px) rotate(-1deg); }
+            80% { transform: translate(-2px, -2px) rotate(1deg); }
+            90% { transform: translate(3px, 2px) rotate(0deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); background-color: #2a2a2a; }
         }
         .shake-effect { animation: shake 0.4s ease-in-out; }
 
@@ -302,7 +303,6 @@
         let enemyTeam = [];
         let pActiveIdx = 0;
         let eActiveIdx = 0;
-        let isForcedSwitch = false;
 
         const STAT_CONFIG = {
             hp:       { label: "HP", min: 300, max: 800, overclockVal: 1200 },
@@ -566,7 +566,6 @@
             });
         }
 
-        /* モンスターの計算結果生成（完全に同期可能な形式） */
         function createCalculatedMonster(mon) {
             if (!mon.ivs) mon.ivs = generateIVs();
             return {
@@ -579,7 +578,7 @@
                 spd: STAT_BASE.spd + mon.ivs.spd.value,
                 critRate: STAT_BASE.critRate + mon.ivs.critRate.value,
                 critDmg: STAT_BASE.critDmg + mon.ivs.critDmg.value,
-                abilities: mon.slots.map(s => s.ability), // アビリティの文字列配列をそのまま送信
+                abilities: mon.slots.map(s => s.ability),
                 hasEndured: false
             };
         }
@@ -672,6 +671,17 @@
                 : '<li style="color:#666;">なし</li>';
         }
 
+        /* ダメージ受けた際のカード揺れトリガー */
+        function triggerCardShake(targetCardId) {
+            const cardBox = document.getElementById(targetCardId);
+            if (cardBox) {
+                cardBox.classList.remove('shake-effect');
+                void cardBox.offsetWidth; // リフロー発生させてアニメーションリセット
+                cardBox.classList.add('shake-effect');
+                setTimeout(() => cardBox.classList.remove('shake-effect'), 400);
+            }
+        }
+
         function logMessage(text, className = "") {
             const box = document.getElementById('battle-log');
             const div = document.createElement('div');
@@ -716,7 +726,6 @@
 
             let pFirst = pMon.spd >= eMon.spd;
 
-            // 素早さ比較で行動順を処理
             if (pFirst) {
                 await executeSingleAction(pMon, eMon, myTurnChoice, true);
                 if (eMon.hp > 0) await executeSingleAction(eMon, pMon, enemySelectedAction, false);
@@ -725,7 +734,6 @@
                 if (pMon.hp > 0) await executeSingleAction(pMon, eMon, myTurnChoice, true);
             }
 
-            // ターン終了時リジェネ等の処理
             applyEndTurnAbilities(pMon, true);
             applyEndTurnAbilities(eMon, false);
 
@@ -737,15 +745,13 @@
             document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
         }
 
-        async function executeSingleAction(attacker, defender, action, isPlayer) {
+        async function executeSingleAction(attacker, defender, action, isAttackerPlayer) {
             if (action.type === 'attack') {
                 let baseDmg = Math.max(10, attacker.atk * (100 / (100 + defender.def)));
                 
-                // 会心判定
                 let isCrit = Math.random() * 100 < attacker.critRate;
                 if (isCrit) baseDmg *= (1.5 + attacker.critDmg / 100);
 
-                // 被ダメージ軽減アビリティ
                 defender.abilities.forEach(abi => {
                     if (abi.includes("かすり傷")) baseDmg *= 0.95;
                     if (abi.includes("鉄壁")) baseDmg *= 0.88;
@@ -756,15 +762,19 @@
                 let dmg = Math.round(baseDmg);
                 defender.hp -= dmg;
 
+                // 攻撃を受けた側のカードを揺らす！
+                const defenderCardId = isAttackerPlayer ? 'enemy-card-box' : 'player-card-box';
+                triggerCardShake(defenderCardId);
+
                 logMessage(`${attacker.name} の攻撃！ ${isCrit ? '<span class="log-crit">💥 会心の一撃！</span>' : ''} ${defender.name} に <span class="log-damage">${dmg}</span> のダメージ！`, 'log-attack');
 
-                // 不屈の魂
                 if (defender.hp <= 0 && defender.abilities.some(a => a.includes("不屈の魂")) && !defender.hasEndured) {
                     defender.hp = 1;
                     defender.hasEndured = true;
                     logMessage(`✨ ${defender.name} は不屈の魂で持ちこたえた！`, 'log-system');
                 }
 
+                updateBattleDisplay();
                 await sleep(600);
             }
         }
