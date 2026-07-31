@@ -330,7 +330,7 @@
         <div class="modal-content">
             <h3 style="margin-top:0; color:#00d2ff;">🔄 交代先を選択</h3>
             <div id="switch-list"></div>
-            <button onclick="closeSwitchModal()" style="margin-top:15px; background:#666;">キャンセル</button>
+            <button id="switch-modal-cancel-btn" onclick="closeSwitchModal()" style="margin-top:15px; background:#666;">キャンセル</button>
         </div>
     </div>
 
@@ -385,6 +385,12 @@
             { id: 1, name: "モンスター 2", currentStars: 0, ivs: null, locks: {}, overclockedStats: {}, hasOverclocked: false, slots: [] },
             { id: 2, name: "モンスター 3", currentStars: 0, ivs: null, locks: {}, overclockedStats: {}, hasOverclocked: false, slots: [] }
         ];
+
+        let playerTeam = [];
+        let enemyTeam = [];
+        let pActiveIdx = 0;
+        let eActiveIdx = 0;
+        let isForcedSwitch = false;
 
         const STAT_CONFIG = {
             hp:       { label: "HP", min: 300, max: 800, overclockVal: 1200 },
@@ -577,266 +583,328 @@
         function toggleLock(monIdx, statType) {
             const mon = monsters[monIdx];
             if (!mon.locks) mon.locks = {};
-            if (!mon.overclockedStats) mon.overclockedStats = {};
+            if (mon.overclockedStats && mon.overclockedStats[statType]) return;
 
-            if (mon.overclockedStats[statType]) return;
-
-            const isCurrentlyLocked = !!mon.locks[statType];
-
-            if (!isCurrentlyLocked && getTotalLockCount(mon) >= MAX_TOTAL_LOCKS) {
-                alert(`突破を含めてロックできるのはトータルで最大${MAX_TOTAL_LOCKS}個までです。`);
-                updateUI();
+            if (!mon.locks[statType] && getTotalLockCount(mon) >= MAX_TOTAL_LOCKS) {
+                alert(`固定（ロック/突破）枠は最大${MAX_TOTAL_LOCKS}個までです。`);
                 return;
             }
-
-            mon.locks[statType] = !isCurrentlyLocked;
+            mon.locks[statType] = !mon.locks[statType];
             updateUI();
         }
 
         function sellSlot(monIdx, slotIdx) {
             const mon = monsters[monIdx];
-            remainingPt += Math.floor(mon.slots[slotIdx].cost / 2);
-            mon.currentStars -= mon.slots[slotIdx].rarity;
+            const slot = mon.slots[slotIdx];
+            remainingPt += Math.floor(slot.cost * 0.7);
+            mon.currentStars -= slot.rarity;
             mon.slots.splice(slotIdx, 1);
-            mon.ivs = null; 
-            mon.locks = {}; 
-            mon.overclockedStats = {}; 
-            mon.hasOverclocked = false;
+            if (mon.slots.length === 0) {
+                mon.ivs = null;
+                mon.locks = {};
+                mon.overclockedStats = {};
+                mon.hasOverclocked = false;
+            }
             updateUI();
         }
 
         function updateUI() {
             document.getElementById('point').textContent = remainingPt;
-            document.getElementById('total-party-stars').textContent = "★" + getPartyTotalStars();
+            document.getElementById('total-party-stars').textContent = `★${getPartyTotalStars()}`;
+
             const container = document.getElementById('monsters-container');
-            let html = "";
+            container.innerHTML = "";
 
             monsters.forEach((mon, monIdx) => {
-                const isMax = mon.slots.length >= MAX_SLOTS, pStars = getPartyTotalStars();
-                const totalLocks = getTotalLockCount(mon);
+                const card = document.createElement('div');
+                card.className = "monster-card";
 
-                html += `
-                    <div class="monster-card">
-                        <div class="monster-header">
-                            <div>🏷️ <input type="text" class="monster-name-input" value="${mon.name}" onchange="updateMonsterName(${monIdx}, this.value)"></div>
-                            <span class="star-count">コスト: ★${mon.currentStars}</span>
-                        </div>
-                        <div class="buy-area">
-                            <span style="font-size:12px; color:#aaa; margin-right:8px;">枠解放:</span>
-                            <button onclick="buySlot(${monIdx}, 1, 200)" ${ (isMax || pStars + 1 > MAX_PARTY_STARS || remainingPt < 200) ? 'disabled' : '' }>★1 (200pt)</button>
-                            <button onclick="buySlot(${monIdx}, 2, 500)" ${ (isMax || pStars + 2 > MAX_PARTY_STARS || remainingPt < 500) ? 'disabled' : '' }>★2 (500pt)</button>
-                            <button onclick="buySlot(${monIdx}, 3, 1000)" ${ (isMax || pStars + 3 > MAX_PARTY_STARS || remainingPt < 1000) ? 'disabled' : '' }>★3 (1000pt)</button>
-                            <button onclick="buySlot(${monIdx}, 4, 2000)" ${ (isMax || pStars + 4 > MAX_PARTY_STARS || remainingPt < 2000) ? 'disabled' : '' }>★4 (2000pt)</button>
-                        </div>
+                let html = `
+                    <div class="monster-header">
+                        <input type="text" class="monster-name-input" value="${mon.name}" onchange="updateMonsterName(${monIdx}, this.value)">
+                        <span class="star-count">★${mon.currentStars}</span>
+                    </div>
                 `;
 
-                if (mon.ivs) {
-                    const ocCost = getOverclockCost(mon);
-                    html += `
-                        <div class="iv-container">
-                            <div class="iv-header">
-                                <span class="iv-title" style="font-size:12px; color:#ffeb3b; font-weight:bold;">📊 個体ステータス (固定: ${totalLocks}/${MAX_TOTAL_LOCKS})</span>
-                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${remainingPt < IV_REROLL_COST ? 'disabled' : ''}>🎲 ステータスリロール (${IV_REROLL_COST}pt)</button>
-                            </div>
-                            <div class="iv-grid">
-                    `;
-                    for (let type in STAT_CONFIG) {
-                        const conf = STAT_CONFIG[type], ivData = mon.ivs[type];
-                        const isOverclocked = !!(mon.overclockedStats && mon.overclockedStats[type]);
-                        const isNormalLocked = !!(mon.locks && mon.locks[type]);
+                if (mon.slots.length > 0) {
+                    html += `<div class="iv-container"><div class="iv-header">
+                        <span style="font-weight:bold; color:#00d2ff; font-size:13px;">能力個体値 (IV)</span>
+                        <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${remainingPt < IV_REROLL_COST ? 'disabled' : ''}>🎲 IVリロール (${IV_REROLL_COST}pt)</button>
+                    </div><div class="iv-grid">`;
 
-                        const isChecked = isOverclocked || isNormalLocked;
+                    for (let statKey in STAT_CONFIG) {
+                        const conf = STAT_CONFIG[statKey];
+                        const ivData = mon.ivs[statKey];
+                        const isLocked = mon.locks && mon.locks[statKey];
+                        const isOverclocked = mon.overclockedStats && mon.overclockedStats[statKey];
 
-                        html += `
-                            <div class="iv-item">
-                                <div><span style="color:#aaa;">${conf.label}:</span> <span class="rank-${ivData.rank}">${ivData.rank === "SPlus" ? "S+" : ivData.rank} (+${ivData.value})</span></div>
-                                <div>
-                                    <label class="lock-label"><input type="checkbox" ${isChecked ? 'checked' : ''} ${isOverclocked ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')">🔒</label>
-                                    <button class="overclock-btn" onclick="overclockStat(${monIdx}, '${type}')" ${ (mon.hasOverclocked || remainingPt < ocCost) ? 'disabled' : '' }>💥 突破 (${ocCost}pt)</button>
-                                </div>
+                        html += `<div class="iv-item">
+                            <div>
+                                <span style="color:#aaa;">${conf.label}:</span> 
+                                <strong class="rank-${ivData.rank}">${ivData.value}</strong> 
+                                <span class="rank-${ivData.rank}">(${ivData.rank})</span>
                             </div>
-                        `;
+                            <div style="display:flex; align-items:center;">
+                                <label class="lock-label">
+                                    <input type="checkbox" ${isLocked ? 'checked' : ''} ${isOverclocked ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${statKey}')">🔒
+                                </label>
+                                <button class="overclock-btn" onclick="overclockStat(${monIdx}, '${statKey}')" ${mon.hasOverclocked || remainingPt < getOverclockCost(mon) ? 'disabled' : ''}>💥 突破</button>
+                            </div>
+                        </div>`;
                     }
                     html += `</div></div>`;
                 }
 
-                if (mon.slots.length > 0) {
-                    mon.slots.forEach((slot, slotIdx) => {
-                        html += `
-                            <div class="slot">
-                                <div><strong>[★${slot.rarity}]</strong> <span>${slot.ability}</span></div>
-                                <div>
-                                    <button class="reroll-btn" onclick="reroll(${monIdx}, ${slotIdx})" ${remainingPt < REROLL_COST ? 'disabled' : ''}>🔀 アビリティリロール (${REROLL_COST}pt)</button>
-                                    <button class="sell-btn" onclick="sellSlot(${monIdx}, ${slotIdx})">売却</button>
-                                </div>
+                html += `<div class="buy-area"><div style="font-size:12px; color:#aaa;">枠拡張（アビリティ解放）</div>`;
+                if (mon.slots.length < MAX_SLOTS) {
+                    [1, 2, 3, 4].forEach(star => {
+                        const costs = { 1: 300, 2: 600, 3: 1000, 4: 1500 };
+                        const canBuy = (getPartyTotalStars() + star <= MAX_PARTY_STARS) && (remainingPt >= costs[star]);
+                        html += `<button onclick="buySlot(${monIdx}, ${star}, ${costs[star]})" ${!canBuy ? 'disabled' : ''}>+ ★${star} (${costs[star]}pt)</button>`;
+                    });
+                } else {
+                    mon.slots.forEach((s, sIdx) => {
+                        html += `<div class="slot">
+                            <div><strong>★${s.rarity} アビリティ:</strong> <span style="color:#00d2ff;">${s.ability}</span></div>
+                            <div>
+                                <button class="reroll-btn" onclick="reroll(${monIdx}, ${sIdx})" ${remainingPt < REROLL_COST ? 'disabled' : ''}>🔀 (${REROLL_COST}pt)</button>
+                                <button class="sell-btn" onclick="sellSlot(${monIdx}, ${sIdx})">🗑️ 解除</button>
                             </div>
-                        `;
+                        </div>`;
                     });
                 }
                 html += `</div>`;
+
+                card.innerHTML = html;
+                container.appendChild(card);
             });
-            container.innerHTML = html;
         }
 
-        // --- バトル待合室 ---
-        let playerTeam = [], enemyTeam = [];
-        let pActiveIdx = 0, eActiveIdx = 0;
+        // --- 🔧 修正: ビルド計算とアビリティ倍率適用 ---
+        function calculateFinalStats(mon) {
+            if (!mon || mon.slots.length === 0) return null;
+            
+            // ベース値 ＋ IV個体値 の基礎データ
+            let hp = STAT_BASE.hp + mon.ivs.hp.value;
+            let atk = STAT_BASE.atk + mon.ivs.atk.value;
+            let def = STAT_BASE.def + mon.ivs.def.value;
+            let spd = STAT_BASE.spd + mon.ivs.spd.value;
+            let critRate = STAT_BASE.critRate + mon.ivs.critRate.value;
+            let critDmg = STAT_BASE.critDmg + mon.ivs.critDmg.value;
+            const abilities = [];
 
-        function buildBattleStats(monData) {
-            if (!monData.ivs) return null;
-            let baseHp = STAT_BASE.hp + monData.ivs.hp.value;
-            let baseAtk = STAT_BASE.atk + monData.ivs.atk.value;
-            let baseDef = STAT_BASE.def + monData.ivs.def.value;
-            let baseSpd = STAT_BASE.spd + monData.ivs.spd.value;
-            let critRate = STAT_BASE.critRate + monData.ivs.critRate.value;
-            let critDmg = STAT_BASE.critDmg + monData.ivs.critDmg.value;
+            // 各アビリティの効果を判定して適用
+            mon.slots.forEach(s => {
+                const ab = s.ability;
+                abilities.push(ab);
 
-            const abilities = monData.slots.map(s => s.ability);
-            abilities.forEach(ab => {
-                if (ab.includes("攻撃力 +")) baseAtk = Math.floor(baseAtk * (1 + parseInt(ab.match(/\d+/)[0]) / 100));
-                if (ab.includes("HP +")) baseHp = Math.floor(baseHp * (1 + parseInt(ab.match(/\d+/)[0]) / 100));
-                if (ab.includes("防御力 +")) baseDef = Math.floor(baseDef * (1 + parseInt(ab.match(/\d+/)[0]) / 100));
-                if (ab.includes("素早さ +")) baseSpd = Math.floor(baseSpd * (1 + parseInt(ab.match(/\d+/)[0]) / 100));
-                if (ab.includes("会心率 +")) critRate += parseInt(ab.match(/\d+/)[0]);
+                // 数値を安全に抽出
+                const match = ab.match(/\d+/);
+                const val = match ? parseInt(match[0], 10) : 0;
+
+                if (ab.includes("攻撃力")) {
+                    atk = Math.round(atk * (1 + val / 100));
+                } else if (ab.includes("HP")) {
+                    hp = Math.round(hp * (1 + val / 100));
+                } else if (ab.includes("防御力")) {
+                    def = Math.round(def * (1 + val / 100));
+                } else if (ab.includes("素早さ")) {
+                    spd = Math.round(spd * (1 + val / 100));
+                } else if (ab.includes("会心率")) {
+                    critRate += val;
+                } else if (ab.includes("会心ダメ")) {
+                    critDmg += val;
+                }
             });
 
-            return { name: monData.name, maxHp: baseHp, currentHp: baseHp, atk: baseAtk, def: baseDef, spd: baseSpd, critRate: critRate, critDmg: critDmg, abilities: abilities };
+            return {
+                name: mon.name,
+                maxHp: hp,
+                currentHp: hp,
+                atk: atk,
+                def: def,
+                spd: spd,
+                critRate: critRate,
+                critDmg: critDmg,
+                abilities: abilities
+            };
         }
 
         function finishBuild() {
-            playerName = document.getElementById('player-name-input').value.trim() || "プレイヤー1";
-            playerTeam = monsters.map(m => buildBattleStats(m)).filter(m => m !== null);
-            if (playerTeam.length === 0) return alert("最低1体のモンスターを構築してください！");
+            const validTeam = monsters.map(m => calculateFinalStats(m)).filter(m => m !== null);
+            if (validTeam.length === 0) return alert("少なくとも1体以上のモンスターを構築してください！");
 
+            playerTeam = validTeam;
             isMyBuildReady = true;
-            notifyBuildStatus();
 
             document.getElementById('build-screen').style.display = "none";
             document.getElementById('pre-battle-room').style.display = "block";
 
-            const list = document.getElementById('starter-select-list');
-            list.innerHTML = "";
-            playerTeam.forEach((mon, idx) => {
-                const div = document.createElement('div');
-                div.className = `starter-card ${idx === 0 ? 'selected' : ''}`;
-                div.id = `starter-card-${idx}`;
-                div.onclick = () => selectStarter(idx);
-                div.innerHTML = `<strong>${mon.name}</strong><br><small style="color:#aaa;">HP: ${mon.maxHp} | 攻撃: ${mon.atk}</small>`;
-                list.appendChild(div);
-            });
-            selectedStarterIdx = 0;
+            renderStarterSelect();
 
             if (gameMode === "AI") {
+                generateAITeam();
+                isOpponentBuildReady = true;
                 isOpponentStarterReady = true;
-                enemyTeam = generateAITeam(aiDifficulty);
-                eActiveIdx = 0;
+            } else {
+                notifyBuildStatus();
             }
         }
 
-        function selectStarter(idx) {
-            if (isMyStarterReady) return;
-            selectedStarterIdx = idx;
-            document.querySelectorAll('.starter-card').forEach((c, i) => {
-                c.classList.toggle('selected', i === idx);
+        function generateAITeam() {
+            enemyTeam = [];
+            const aiStarBudgets = { easy: 3, normal: 5, hard: 7, oni: 7 };
+            const starBudget = aiStarBudgets[aiDifficulty];
+            
+            const monCount = aiDifficulty === 'easy' ? 1 : (aiDifficulty === 'normal' ? 2 : 3);
+            let remainingStars = starBudget;
+
+            for (let i = 0; i < monCount; i++) {
+                let star = Math.min(remainingStars, Math.floor(remainingStars / (monCount - i)) || 1);
+                if (i === monCount - 1) star = Math.max(1, remainingStars);
+                remainingStars -= star;
+
+                const baseIvMultiplier = { easy: 0.3, normal: 0.6, hard: 0.85, oni: 1.0 }[aiDifficulty];
+                
+                const ivs = {};
+                for (let k in STAT_CONFIG) {
+                    const conf = STAT_CONFIG[k];
+                    let val = Math.round(conf.min + (conf.max - conf.min) * baseIvMultiplier);
+                    if (aiDifficulty === 'oni') val = conf.overclockVal;
+                    ivs[k] = { value: val };
+                }
+
+                const mockMon = {
+                    name: `AI-MON ${i + 1}`,
+                    ivs: ivs,
+                    slots: [{ rarity: Math.min(4, Math.max(1, star)), ability: ABILITY_POOL[Math.min(4, Math.max(1, star))][0] }]
+                };
+                enemyTeam.push(calculateFinalStats(mockMon));
+            }
+            eActiveIdx = 0;
+        }
+
+        function renderStarterSelect() {
+            const list = document.getElementById('starter-select-list');
+            list.innerHTML = "";
+            playerTeam.forEach((mon, idx) => {
+                const card = document.createElement('div');
+                card.className = `starter-card ${idx === selectedStarterIdx ? 'selected' : ''}`;
+                card.onclick = () => {
+                    selectedStarterIdx = idx;
+                    renderStarterSelect();
+                };
+                card.innerHTML = `
+                    <div style="font-weight:bold; color:#00d2ff;">${mon.name}</div>
+                    <div style="font-size:12px; color:#aaa; margin-top:5px;">
+                        HP: ${mon.maxHp}<br>攻撃: ${mon.atk} | 防御: ${mon.def}<br>素早さ: ${mon.spd}
+                    </div>
+                `;
+                list.appendChild(card);
             });
         }
 
         function confirmStarterReady() {
-            isMyStarterReady = true;
             pActiveIdx = selectedStarterIdx;
+            isMyStarterReady = true;
             document.getElementById('starter-ready-btn').disabled = true;
-            document.getElementById('pre-battle-status').textContent = "あなたの準備完了！相手を待っています...";
+            document.getElementById('pre-battle-status').textContent = "相手の接続/準備完了を待っています...";
 
             if (gameMode !== "AI") {
-                sendData({ type: 'STARTER_READY', starterIdx: selectedStarterIdx, team: playerTeam });
-                checkStartBattle();
-            } else {
-                checkStartBattle();
+                sendData({ type: 'STARTER_READY', team: playerTeam, starterIdx: pActiveIdx });
             }
+            checkStartBattle();
         }
 
         function checkStartBattle() {
             if (isMyStarterReady && isOpponentStarterReady) {
                 document.getElementById('pre-battle-room').style.display = "none";
                 document.getElementById('battle-screen').style.display = "block";
-                document.getElementById('display-player-name').textContent = `[${playerName}]`;
-                document.getElementById('display-enemy-name').textContent = `[${enemyPlayerName}]`;
-                appendLog(`<span class="log-system">⚔️ ${playerName} VS ${enemyPlayerName} のバトル開始！</span>`);
+                document.getElementById('display-player-name').textContent = `[YOU] ${playerName}`;
+                document.getElementById('display-enemy-name').textContent = `[ENEMY] ${enemyPlayerName}`;
+                
+                logBattle(`<span class="log-system">戦闘開始！</span>`);
                 updateBattleUI();
             }
         }
 
-        // --- 難易度別AIパーティ生成 ---
-        function generateAITeam(diff) {
-            if (diff === "easy") {
-                return [
-                    { name: "スライム", maxHp: 1100, currentHp: 1100, atk: 180, def: 80, spd: 30, critRate: 5, critDmg: 20, abilities: ["初級アーマー"] },
-                    { name: "プチドラゴン", maxHp: 1200, currentHp: 1200, atk: 220, def: 100, spd: 40, critRate: 8, critDmg: 30, abilities: ["プチパワー"] }
-                ];
-            } else if (diff === "normal") {
-                return ["ファントム", "ゴーレム", "ドラゴン"].map(name => {
-                    const ivs = generateIVs();
-                    return { name: name, maxHp: STAT_BASE.hp + ivs.hp.value, currentHp: STAT_BASE.hp + ivs.hp.value, atk: STAT_BASE.atk + ivs.atk.value, def: STAT_BASE.def + ivs.def.value, spd: STAT_BASE.spd + ivs.spd.value, critRate: STAT_BASE.critRate + ivs.critRate.value, critDmg: STAT_BASE.critDmg + ivs.critDmg.value, abilities: ["AIの加護"] };
-                });
-            } else if (diff === "hard") {
-                return [
-                    { name: "影の剣士", maxHp: 1700, currentHp: 1700, atk: 450, def: 200, spd: 65, critRate: 20, critDmg: 60, abilities: ["攻撃力 +20%", "会心率 +10%"] },
-                    { name: "鉄壁の要塞", maxHp: 2200, currentHp: 2200, atk: 350, def: 380, spd: 40, critRate: 10, critDmg: 40, abilities: ["HP +25%", "防御力 +20%"] },
-                    { name: "疾風の竜", maxHp: 1600, currentHp: 1600, atk: 480, def: 180, spd: 85, critRate: 25, critDmg: 70, abilities: ["素早さ +18%", "攻撃力 +20%"] }
-                ];
-            } else { // 👹 おに
-                return [
-                    { name: "鬼神アルテマ", maxHp: 2600, currentHp: 2600, atk: 750, def: 350, spd: 95, critRate: 35, critDmg: 120, abilities: ["攻撃力 +65%", "会心率 +18%"] },
-                    { name: "不滅の守護神", maxHp: 3200, currentHp: 3200, atk: 500, def: 550, spd: 60, critRate: 15, critDmg: 80, abilities: ["HP +75%", "防御力 +60%"] },
-                    { name: "終焉の覇王", maxHp: 2400, currentHp: 2400, atk: 880, def: 300, spd: 110, critRate: 40, critDmg: 150, abilities: ["攻撃力 +65%", "素早さ +45%"] }
-                ];
+        // --- バトルフェーズ管理 ---
+        function updateBattleUI() {
+            const pMon = playerTeam[pActiveIdx];
+            const eMon = enemyTeam[eActiveIdx];
+
+            document.getElementById('p-mon-name').textContent = pMon.name;
+            document.getElementById('p-hp-cur').textContent = Math.max(0, pMon.currentHp);
+            document.getElementById('p-hp-max').textContent = pMon.maxHp;
+            document.getElementById('p-hp-bar').style.width = `${Math.max(0, (pMon.currentHp / pMon.maxHp) * 100)}%`;
+            document.getElementById('p-atk').textContent = pMon.atk;
+            document.getElementById('p-def').textContent = pMon.def;
+            document.getElementById('p-spd').textContent = pMon.spd;
+            document.getElementById('p-crit-rate').textContent = pMon.critRate;
+            document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
+            document.getElementById('p-abilities').innerHTML = pMon.abilities.map(a => `<li>• ${a}</li>`).join('');
+
+            document.getElementById('e-mon-name').textContent = eMon.name;
+            document.getElementById('e-hp-cur').textContent = Math.max(0, eMon.currentHp);
+            document.getElementById('e-hp-max').textContent = eMon.maxHp;
+            document.getElementById('e-hp-bar').style.width = `${Math.max(0, (eMon.currentHp / eMon.maxHp) * 100)}%`;
+            document.getElementById('e-atk').textContent = eMon.atk;
+            document.getElementById('e-def').textContent = eMon.def;
+            document.getElementById('e-spd').textContent = eMon.spd;
+            document.getElementById('e-crit-rate').textContent = eMon.critRate;
+            document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
+            document.getElementById('e-abilities').innerHTML = eMon.abilities.map(a => `<li>• ${a}</li>`).join('');
+
+            // ボタン表示状態制御
+            if (isForcedSwitch) {
+                document.getElementById('turn-status-tag').textContent = "ひんし！交代先を選択してください";
+                document.getElementById('btn-select-attack').disabled = true;
+                document.getElementById('btn-confirm-action').disabled = true;
+            } else {
+                document.getElementById('btn-select-attack').disabled = false;
             }
         }
 
-        // --- 難易度別AI思考アルゴリズム ---
-        function getAIAction() {
-            const activeE = enemyTeam[eActiveIdx];
-            const activeP = playerTeam[pActiveIdx];
-
-            if (aiDifficulty === "easy" || aiDifficulty === "normal") {
-                return { type: 'attack' }; 
-            }
-
-            // 「むずかしい」「おに」の思考ロジック
-            const aliveIndexes = enemyTeam.map((m, idx) => (m.currentHp > 0 && idx !== eActiveIdx) ? idx : null).filter(val => val !== null);
-
-            if (activeE.currentHp < activeE.maxHp * 0.25 && aliveIndexes.length > 0) {
-                const switchChance = (aiDifficulty === "oni") ? 0.7 : 0.4;
-                if (Math.random() < switchChance) {
-                    const nextIdx = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
-                    return { type: 'switch', targetIdx: nextIdx };
-                }
-            }
-
-            return { type: 'attack' };
+        function logBattle(msg) {
+            const box = document.getElementById('battle-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = msg;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
         }
 
-        // --- バトル・コマンド選択・演出処理 ---
         function selectTurnAction(type, targetIdx = null) {
-            if (isMyTurnConfirmed) return;
-            myTurnChoice = { type: type, targetIdx: targetIdx };
-            const disp = document.getElementById('selected-action-display');
-            disp.textContent = `選択中の行動: ${type === 'attack' ? '⚔️ 攻撃' : '🔄 交代 (' + playerTeam[targetIdx].name + ')'}`;
+            if (type === 'attack') {
+                myTurnChoice = { type: 'attack' };
+                document.getElementById('selected-action-display').textContent = "選択中の行動: ⚔️ 攻撃";
+            } else if (type === 'switch') {
+                myTurnChoice = { type: 'switch', targetIdx: targetIdx };
+                document.getElementById('selected-action-display').textContent = `選択中の行動: 🔄 交代 (${playerTeam[targetIdx].name})`;
+            }
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
         function confirmTurnAction() {
-            if (!myTurnChoice || isMyTurnConfirmed) return;
-            isMyTurnConfirmed = true;
+            if (!myTurnChoice) return;
+            
+            if (isForcedSwitch) {
+                pActiveIdx = myTurnChoice.targetIdx;
+                isForcedSwitch = false;
+                closeSwitchModal();
+                logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} を繰り出した！</span>`);
+                resetTurnSelection();
+                updateBattleUI();
+                return;
+            }
 
-            document.getElementById('btn-select-attack').disabled = true;
-            document.getElementById('btn-select-switch').disabled = true;
+            isMyTurnConfirmed = true;
             document.getElementById('btn-confirm-action').disabled = true;
-            document.getElementById('turn-status-tag').textContent = "⏳ 相手の決定待ち...";
+            document.getElementById('turn-status-tag').textContent = "相手の行動決定を待っています...";
 
             if (gameMode === "AI") {
+                enemySelectedAction = decideAIAction();
                 isOpponentTurnConfirmed = true;
-                enemySelectedAction = getAIAction();
                 checkExecuteTurn();
             } else {
                 sendData({ type: 'ACTION_CONFIRMED', action: myTurnChoice });
@@ -844,168 +912,195 @@
             }
         }
 
-        async function checkExecuteTurn() {
-            if (isMyTurnConfirmed && isOpponentTurnConfirmed) {
-                document.getElementById('turn-status-tag').textContent = "⚡ ターン処理中...";
-                await executeTurn();
-                
-                myTurnChoice = null;
-                enemySelectedAction = null;
-                isMyTurnConfirmed = false;
-                isOpponentTurnConfirmed = false;
-
-                document.getElementById('btn-select-attack').disabled = false;
-                document.getElementById('btn-select-switch').disabled = false;
-                document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
-                document.getElementById('turn-status-tag').textContent = "行動を選択してください";
-            }
+        function resetTurnSelection() {
+            myTurnChoice = null;
+            isMyTurnConfirmed = false;
+            isOpponentTurnConfirmed = false;
+            enemySelectedAction = null;
+            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+            document.getElementById('btn-confirm-action').disabled = true;
+            document.getElementById('turn-status-tag').textContent = "行動を選択してください";
         }
 
-        async function executeTurn() {
-            const p = playerTeam[pActiveIdx], e = enemyTeam[eActiveIdx];
-            appendLog(`<hr style="border:0; border-top:1px solid #333; margin:8px 0;">`);
-
-            // AI交代処理
-            if (enemySelectedAction.type === 'switch') {
-                eActiveIdx = enemySelectedAction.targetIdx;
-                appendLog(`<span class="log-system">🔄 【${enemyPlayerName}】 は ${enemyTeam[eActiveIdx].name} に交代！</span>`);
-                updateBattleUI();
-                await sleep(500);
-            }
-
-            // プレイヤー交代処理
-            if (myTurnChoice.type === 'switch') {
-                pActiveIdx = myTurnChoice.targetIdx;
-                appendLog(`<span class="log-system">🔄 【${playerName}】 は ${playerTeam[pActiveIdx].name} に交代！</span>`);
-                updateBattleUI();
-                await sleep(500);
-            }
-
-            // 素早さによる先手後手の判定（交代はすでに実行済み）
-            const isPlayerFaster = p.spd >= e.spd;
-
-            if (isPlayerFaster) {
-                if (myTurnChoice.type === 'attack') {
-                    await performAttack(p, e, true);
-                    if (e.currentHp <= 0) { await handleFaint(e, false); return; }
-                }
-                if (enemySelectedAction.type === 'attack') {
-                    await performAttack(e, playerTeam[pActiveIdx], false);
-                    if (playerTeam[pActiveIdx].currentHp <= 0) { await handleFaint(playerTeam[pActiveIdx], true); return; }
-                }
-            } else {
-                if (enemySelectedAction.type === 'attack') {
-                    await performAttack(e, playerTeam[pActiveIdx], false);
-                    if (playerTeam[pActiveIdx].currentHp <= 0) { await handleFaint(playerTeam[pActiveIdx], true); return; }
-                }
-                if (myTurnChoice.type === 'attack') {
-                    await performAttack(p, e, true);
-                    if (e.currentHp <= 0) { await handleFaint(e, false); return; }
-                }
-            }
-        }
-
-        async function performAttack(attacker, defender, isPlayerAttacker) {
-            const tag = isPlayerAttacker ? `【${playerName}】` : `【${enemyPlayerName}】`;
-            appendLog(`<span class="log-attack">${tag} ${attacker.name} の攻撃！</span>`);
-            await sleep(300);
-
-            let damage = Math.max(10, attacker.atk - Math.floor(defender.def * 0.4));
-            let isCrit = false;
-            
-            if ((Math.random() * 100) < attacker.critRate) {
-                isCrit = true;
-                damage = Math.floor(damage * (1 + attacker.critDmg / 100));
-                appendLog(`&nbsp;&nbsp;<span class="log-crit">⚡ 会心の一撃（クリティカル）！</span>`);
-            }
-
-            defender.currentHp -= damage;
-            
-            const targetCardId = isPlayerAttacker ? 'enemy-card-box' : 'player-card-box';
-            triggerShake(targetCardId);
-
-            updateBattleUI();
-            
-            appendLog(`&nbsp;&nbsp;💥 ダメージ: <span class="log-damage">-${damage}</span>`);
-            await sleep(500);
-        }
-
-        async function handleFaint(faintedMon, isPlayer) {
-            const tag = isPlayer ? `【${playerName}】` : `【${enemyPlayerName}】`;
-            appendLog(`<span class="log-damage">☠️ ${tag} ${faintedMon.name} は倒れた！</span>`);
-            await sleep(500);
-
-            if (isPlayer) {
-                const alive = playerTeam.findIndex(m => m.currentHp > 0);
-                if (alive !== -1) openSwitchModal(true);
-                else showResultModal(false);
-            } else {
-                const aliveE = enemyTeam.findIndex(m => m.currentHp > 0);
-                if (aliveE !== -1) {
-                    eActiveIdx = aliveE;
-                    appendLog(`<span class="log-system">⚠️ 相手は ${enemyTeam[eActiveIdx].name} を出してきた！</span>`);
-                } else showResultModal(true);
-            }
-            updateBattleUI();
-        }
-
-        function updateBattleUI() {
-            const p = playerTeam[pActiveIdx], e = enemyTeam[eActiveIdx];
-            if (p) {
-                document.getElementById('p-mon-name').textContent = p.name;
-                document.getElementById('p-hp-cur').textContent = Math.max(0, p.currentHp);
-                document.getElementById('p-hp-max').textContent = p.maxHp;
-                document.getElementById('p-atk').textContent = p.atk; document.getElementById('p-def').textContent = p.def; document.getElementById('p-spd').textContent = p.spd;
-                document.getElementById('p-crit-rate').textContent = p.critRate; document.getElementById('p-crit-dmg').textContent = p.critDmg;
-                document.getElementById('p-hp-bar').style.width = Math.max(0, (p.currentHp / p.maxHp) * 100) + "%";
-                document.getElementById('p-abilities').innerHTML = p.abilities.map(a => `<li>🔹 ${a}</li>`).join('');
-            }
-            if (e) {
-                document.getElementById('e-mon-name').textContent = e.name;
-                document.getElementById('e-hp-cur').textContent = Math.max(0, e.currentHp);
-                document.getElementById('e-hp-max').textContent = e.maxHp;
-                document.getElementById('e-atk').textContent = e.atk; document.getElementById('e-def').textContent = e.def; document.getElementById('e-spd').textContent = e.spd;
-                document.getElementById('e-crit-rate').textContent = e.critRate; document.getElementById('e-crit-dmg').textContent = e.critDmg;
-                document.getElementById('e-hp-bar').style.width = Math.max(0, (e.currentHp / e.maxHp) * 100) + "%";
-                document.getElementById('e-abilities').innerHTML = e.abilities.map(a => `<li>🔸 ${a}</li>`).join('');
-            }
-        }
-
-        function appendLog(text) {
-            const logBox = document.getElementById('battle-log');
-            const div = document.createElement('div');
-            div.className = "log-entry"; div.innerHTML = text;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-
-        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-        function openSwitchModal(isFainted = false) {
+        function openSwitchModal(forced = false) {
+            isForcedSwitch = forced;
             const list = document.getElementById('switch-list');
             list.innerHTML = "";
+            
+            document.getElementById('switch-modal-cancel-btn').style.display = forced ? "none" : "inline-block";
+
             playerTeam.forEach((mon, idx) => {
-                const disabled = idx === pActiveIdx || mon.currentHp <= 0;
-                const div = document.createElement('div');
-                div.className = `switch-item ${disabled ? 'disabled' : ''}`;
-                div.textContent = `${mon.name} (HP: ${Math.max(0, mon.currentHp)}/${mon.maxHp})`;
-                if (!disabled) div.onclick = () => {
-                    closeSwitchModal();
-                    if (isFainted) { pActiveIdx = idx; updateBattleUI(); }
-                    else selectTurnAction('switch', idx);
-                };
-                list.appendChild(div);
+                const isCurrent = idx === pActiveIdx;
+                const isDead = mon.currentHp <= 0;
+
+                const item = document.createElement('div');
+                item.className = `switch-item ${(isCurrent || isDead) ? 'disabled' : ''}`;
+                item.innerHTML = `
+                    <div style="font-weight:bold; color:#00d2ff;">${mon.name} ${isCurrent ? '(場に出ています)' : ''} ${isDead ? '(ひんし)' : ''}</div>
+                    <div style="font-size:12px; color:#aaa;">HP: ${Math.max(0, mon.currentHp)} / ${mon.maxHp}</div>
+                `;
+
+                if (!isCurrent && !isDead) {
+                    item.onclick = () => {
+                        if (forced) {
+                            pActiveIdx = idx;
+                            isForcedSwitch = false;
+                            closeSwitchModal();
+                            logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} を繰り出した！</span>`);
+                            updateBattleUI();
+                        } else {
+                            selectTurnAction('switch', idx);
+                            closeSwitchModal();
+                        }
+                    };
+                }
+                list.appendChild(item);
             });
             document.getElementById('switch-modal').style.display = "flex";
         }
 
-        function closeSwitchModal() { document.getElementById('switch-modal').style.display = "none"; }
+        function closeSwitchModal() {
+            document.getElementById('switch-modal').style.display = "none";
+        }
 
-        function showResultModal(isWin) {
-            const modal = document.getElementById('result-modal');
-            document.getElementById('result-title').textContent = isWin ? "VICTORY" : "DEFEAT";
-            document.getElementById('result-title').style.color = isWin ? "#ffeb3b" : "#f44336";
-            modal.style.display = "flex";
+        // --- AI思考ルーチン ---
+        function decideAIAction() {
+            const eMon = enemyTeam[eActiveIdx];
+            const pMon = playerTeam[pActiveIdx];
+
+            if (eMon.currentHp <= 0) {
+                const aliveIndices = enemyTeam.map((m, i) => m.currentHp > 0 ? i : -1).filter(i => i !== -1);
+                if (aliveIndices.length > 0) return { type: 'switch', targetIdx: aliveIndices[0] };
+            }
+
+            if (aiDifficulty === 'easy') {
+                return { type: 'attack' };
+            }
+
+            if (aiDifficulty !== 'easy' && eMon.currentHp / eMon.maxHp < 0.25) {
+                const aliveCandidates = enemyTeam.map((m, i) => (i !== eActiveIdx && m.currentHp / m.maxHp > 0.5) ? i : -1).filter(i => i !== -1);
+                if (aliveCandidates.length > 0 && Math.random() < 0.5) {
+                    return { type: 'switch', targetIdx: aliveCandidates[0] };
+                }
+            }
+
+            return { type: 'attack' };
+        }
+
+        // --- ターン実行処理 ---
+        function checkExecuteTurn() {
+            if (isMyTurnConfirmed && isOpponentTurnConfirmed) {
+                executeTurn(myTurnChoice, enemySelectedAction);
+            }
+        }
+
+        function executeTurn(pAction, eAction) {
+            let pFirst = playerTeam[pActiveIdx].spd >= enemyTeam[eActiveIdx].spd;
+            if (playerTeam[pActiveIdx].spd === enemyTeam[eActiveIdx].spd) pFirst = Math.random() < 0.5;
+
+            const actions = [
+                { owner: 'player', action: pAction },
+                { owner: 'enemy', action: eAction }
+            ];
+
+            actions.sort((a, b) => {
+                if (a.action.type === 'switch' && b.action.type !== 'switch') return -1;
+                if (a.action.type !== 'switch' && b.action.type === 'switch') return 1;
+                return a.owner === (pFirst ? 'player' : 'enemy') ? -1 : 1;
+            });
+
+            for (let act of actions) {
+                if (checkGameEnd()) break;
+
+                if (act.owner === 'player') {
+                    if (playerTeam[pActiveIdx].currentHp <= 0) continue;
+                    if (act.action.type === 'switch') {
+                        pActiveIdx = act.action.targetIdx;
+                        logBattle(`<span class="log-system">${playerName} は ${playerTeam[pActiveIdx].name} に交代！</span>`);
+                        updateBattleUI();
+                    } else {
+                        performAttack('player');
+                    }
+                } else {
+                    if (enemyTeam[eActiveIdx].currentHp <= 0) continue;
+                    if (act.action.type === 'switch') {
+                        eActiveIdx = act.action.targetIdx;
+                        logBattle(`<span class="log-system">${enemyPlayerName} は ${enemyTeam[eActiveIdx].name} に交代！</span>`);
+                        updateBattleUI();
+                    } else {
+                        performAttack('enemy');
+                    }
+                }
+            }
+
+            updateBattleUI();
+            resetTurnSelection();
+
+            if (!checkGameEnd()) {
+                if (playerTeam[pActiveIdx].currentHp <= 0) {
+                    openSwitchModal(true);
+                } else if (enemyTeam[eActiveIdx].currentHp <= 0) {
+                    const nextEnemyIdx = enemyTeam.findIndex(m => m.currentHp > 0);
+                    if (nextEnemyIdx !== -1) {
+                        eActiveIdx = nextEnemyIdx;
+                        logBattle(`<span class="log-system">${enemyPlayerName} は ${enemyTeam[eActiveIdx].name} を繰り出した！</span>`);
+                        updateBattleUI();
+                    }
+                }
+            }
+        }
+
+        function performAttack(attackerSide) {
+            const attacker = attackerSide === 'player' ? playerTeam[pActiveIdx] : enemyTeam[eActiveIdx];
+            const defender = attackerSide === 'player' ? enemyTeam[eActiveIdx] : playerTeam[pActiveIdx];
+            const defenderBoxId = attackerSide === 'player' ? 'enemy-card-box' : 'player-card-box';
+
+            triggerShake(defenderBoxId);
+
+            let baseDamage = Math.max(10, Math.floor(attacker.atk * 1.5 - defender.def * 0.6));
+            
+            const isCrit = (Math.random() * 100) < attacker.critRate;
+            if (isCrit) {
+                baseDamage = Math.round(baseDamage * (1.5 + attacker.critDmg / 100));
+            }
+
+            const randomMult = 0.85 + Math.random() * 0.3;
+            const finalDamage = Math.max(1, Math.round(baseDamage * randomMult));
+
+            defender.currentHp -= finalDamage;
+
+            const critTxt = isCrit ? `<span class="log-crit"> 💥 急所に当たった！</span>` : '';
+            const attackerName = attackerSide === 'player' ? playerName : enemyPlayerName;
+            logBattle(`<span class="log-attack">${attackerName} (${attacker.name})</span> の攻撃！ ${critTxt} <span class="log-damage">${finalDamage}</span> のダメージ！`);
+        }
+
+        function checkGameEnd() {
+            const pAllDead = playerTeam.every(m => m.currentHp <= 0);
+            const eAllDead = enemyTeam.every(m => m.currentHp <= 0);
+
+            if (pAllDead || eAllDead) {
+                const title = document.getElementById('result-title');
+                const sub = document.getElementById('result-sub');
+                const modal = document.getElementById('result-modal');
+
+                if (pAllDead && eAllDead) {
+                    title.textContent = "DRAW";
+                    title.style.color = "#aaa";
+                    sub.textContent = "相打ち！引き分けです！";
+                } else if (eAllDead) {
+                    title.textContent = "VICTORY";
+                    title.style.color = "#ffeb3b";
+                    sub.textContent = `${playerName} の勝利！`;
+                } else {
+                    title.textContent = "DEFEAT";
+                    title.style.color = "#f44336";
+                    sub.textContent = `${enemyPlayerName} の勝利...`;
+                }
+
+                modal.style.display = "flex";
+                return true;
+            }
+            return false;
         }
     </script>
 </body>
