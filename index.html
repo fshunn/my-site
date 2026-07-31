@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 度拡張</title>
+    <title>STAR FORGE - AI難易度拡張版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -160,7 +160,6 @@
         .btn-attack { background: linear-gradient(180deg, #ff9800 0%, #e65100 100%); color: #fff; }
         .btn-switch { background: linear-gradient(180deg, #2196f3 0%, #0d47a1 100%); color: #fff; }
 
-        /* 選択中ボタンの判別表示用CSS強化 */
         .action-btn.selected-action {
             opacity: 1.0 !important;
             border-color: #ffeb3b !important;
@@ -1004,7 +1003,6 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // 行動選択の強調表示処理を強化
         function selectTurnAction(type, detail = null) {
             if (isProcessingTurn || isMyTurnConfirmed) return;
             myTurnChoice = { type, detail };
