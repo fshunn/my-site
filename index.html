@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - ロック機能修正＆画面揺れ完全版 (Ver 7.6)</title>
+    <title>STAR FORGE - 完全修復版 (Ver 7.8)</title>
     <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -386,16 +386,18 @@
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
 
-        /* ロック機能の不備を修整したIV生成関数 */
+        /* ロック＆オーバークロック判定を完璧に修正したIV生成関数 */
         function generateIVs(existingIVs = null, locks = {}, overclockedStats = {}) {
             const result = {};
             for (let type in STAT_CONFIG) {
                 if (overclockedStats && overclockedStats[type]) {
+                    // オーバークロック中の数値
                     result[type] = { rank: "SPlus", value: STAT_CONFIG[type].overclockVal };
                 } else if (locks && locks[type] === true && existingIVs && existingIVs[type]) {
-                    // ロックされている場合は既存のオブジェクトを保持
+                    // 🔒 ロック中の値は完全維持
                     result[type] = { ...existingIVs[type] };
                 } else {
+                    // 未ロックのみ新規抽選
                     const conf = STAT_CONFIG[type];
                     const val = getBinomialRandom(conf.min, conf.max);
                     result[type] = { rank: getRank(val, conf.min, conf.max), value: val };
@@ -434,8 +436,16 @@
             const mon = monsters[monIdx];
             if (remainingPt < IV_REROLL_COST) return alert("コインが足りません！");
             remainingPt -= IV_REROLL_COST;
+            // 既存IVとロック状態を渡して確実に数値を維持
             mon.ivs = generateIVs(mon.ivs, mon.locks, mon.overclockedStats);
             updateUI();
+        }
+
+        /* ロック個数（オーバークロック含む）の集計 */
+        function getLockedCount(mon) {
+            const lockCount = Object.keys(mon.locks).filter(k => mon.locks[k]).length;
+            const ocCount = Object.keys(mon.overclockedStats).filter(k => mon.overclockedStats[k]).length;
+            return lockCount + ocCount;
         }
 
         function toggleLock(monIdx, type) {
@@ -443,7 +453,10 @@
             if (mon.locks[type]) {
                 delete mon.locks[type];
             } else {
-                if (Object.keys(mon.locks).length >= MAX_TOTAL_LOCKS) return alert("ロックは最大2つまでです！");
+                // ロック＋オーバークロックの合計が最大2個までの制限
+                if (getLockedCount(mon) >= MAX_TOTAL_LOCKS) {
+                    return alert("ロック（オーバークロック含む）は合計で最大2つまでです！");
+                }
                 mon.locks[type] = true;
             }
             updateUI();
@@ -453,8 +466,13 @@
             const mon = monsters[monIdx];
             const rarity = mon.slots[0]?.rarity || 1;
             const cost = OVERCLOCK_COST_TABLE[rarity];
+            
             if (mon.hasOverclocked) return alert("オーバークロックは1体につき1回までです。");
+            if (getLockedCount(mon) >= MAX_TOTAL_LOCKS && !mon.locks[type]) {
+                return alert("ロック（オーバークロック含む）は合計で最大2つまでです！");
+            }
             if (remainingPt < cost) return alert("コインが足りません！");
+
             remainingPt -= cost;
             mon.hasOverclocked = true;
             mon.overclockedStats[type] = true;
@@ -497,12 +515,13 @@
 
                 let ivHTML = "";
                 if (mon.slots.length > 0) {
-                    if (!mon.ivs) mon.ivs = generateIVs();
+                    if (!mon.ivs) mon.ivs = generateIVs(null, mon.locks, mon.overclockedStats);
                     let ivGridHTML = "";
                     for (let type in STAT_CONFIG) {
                         const conf = STAT_CONFIG[type];
                         const ivData = mon.ivs[type];
                         const isLocked = !!mon.locks[type];
+                        const isOC = !!mon.overclockedStats[type];
                         const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
                         
                         ivGridHTML += `
@@ -513,7 +532,7 @@
                                     <span style="font-size:11px; color:#888;">(+${ivData.value})</span>
                                 </div>
                                 <div style="display:flex; align-items:center;">
-                                    <label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>
+                                    <label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>
                                     <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${mon.hasOverclocked ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
                                 </div>
                             </div>
@@ -544,7 +563,7 @@
         }
 
         function createCalculatedMonster(mon) {
-            if (!mon.ivs) mon.ivs = generateIVs();
+            if (!mon.ivs) mon.ivs = generateIVs(null, mon.locks, mon.overclockedStats);
             return {
                 name: mon.name,
                 stars: mon.currentStars,
@@ -648,12 +667,12 @@
                 : '<li style="color:#666;">なし</li>';
         }
 
-        /* ダメージ受けた際のカード揺れトリガー */
+        /* 被弾時の画面（カード）シェイク処理 */
         function triggerCardShake(targetCardId) {
             const cardBox = document.getElementById(targetCardId);
             if (cardBox) {
                 cardBox.classList.remove('shake-effect');
-                void cardBox.offsetWidth; // リフロー発生させてアニメーションリセット
+                void cardBox.offsetWidth; // リフロー発生によるアニメーション再再生
                 cardBox.classList.add('shake-effect');
                 setTimeout(() => cardBox.classList.remove('shake-effect'), 400);
             }
@@ -739,7 +758,7 @@
                 let dmg = Math.round(baseDmg);
                 defender.hp -= dmg;
 
-                // 攻撃を受けた側のカードを揺らす！
+                // 被弾アニメーション発動
                 const defenderCardId = isAttackerPlayer ? 'enemy-card-box' : 'player-card-box';
                 triggerCardShake(defenderCardId);
 
