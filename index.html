@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 完全修復版 (Ver 7.8)</title>
+    <title>STAR FORGE - 完全修正版</title>
     <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -115,13 +115,9 @@
         .btn-group { display: flex; gap: 10px; }
         .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; }
         .btn-attack { background: #ff9800; color: #000; }
-        .btn-switch { background: #2196f3; color: #fff; }
         .btn-confirm { background: #4caf50; color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
 
         .turn-status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: #2a2a2a; padding: 20px; border-radius: 12px; border: 1px solid #555; width: 340px; text-align: center; }
     </style>
 </head>
 <body>
@@ -386,18 +382,14 @@
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
 
-        /* ロック＆オーバークロック判定を完璧に修正したIV生成関数 */
         function generateIVs(existingIVs = null, locks = {}, overclockedStats = {}) {
             const result = {};
             for (let type in STAT_CONFIG) {
                 if (overclockedStats && overclockedStats[type]) {
-                    // オーバークロック中の数値
                     result[type] = { rank: "SPlus", value: STAT_CONFIG[type].overclockVal };
                 } else if (locks && locks[type] === true && existingIVs && existingIVs[type]) {
-                    // 🔒 ロック中の値は完全維持
                     result[type] = { ...existingIVs[type] };
                 } else {
-                    // 未ロックのみ新規抽選
                     const conf = STAT_CONFIG[type];
                     const val = getBinomialRandom(conf.min, conf.max);
                     result[type] = { rank: getRank(val, conf.min, conf.max), value: val };
@@ -436,7 +428,6 @@
             const mon = monsters[monIdx];
             if (remainingPt < IV_REROLL_COST) return alert("コインが足りません！");
             remainingPt -= IV_REROLL_COST;
-            // 既存IVとロック状態を渡して確実に数値を維持
             mon.ivs = generateIVs(mon.ivs, mon.locks, mon.overclockedStats);
             updateUI();
         }
@@ -453,9 +444,8 @@
             if (mon.locks[type]) {
                 delete mon.locks[type];
             } else {
-                // ロック＋オーバークロックの合計が最大2個までの制限
                 if (getLockedCount(mon) >= MAX_TOTAL_LOCKS) {
-                    return alert("ロック（オーバークロック含む）は合計で最大2つまでです！");
+                    return; // 2個以上の場合は選択不可
                 }
                 mon.locks[type] = true;
             }
@@ -469,7 +459,7 @@
             
             if (mon.hasOverclocked) return alert("オーバークロックは1体につき1回までです。");
             if (getLockedCount(mon) >= MAX_TOTAL_LOCKS && !mon.locks[type]) {
-                return alert("ロック（オーバークロック含む）は合計で最大2つまでです！");
+                return;
             }
             if (remainingPt < cost) return alert("コインが足りません！");
 
@@ -517,6 +507,10 @@
                 if (mon.slots.length > 0) {
                     if (!mon.ivs) mon.ivs = generateIVs(null, mon.locks, mon.overclockedStats);
                     let ivGridHTML = "";
+                    
+                    const currentLockedTotal = getLockedCount(mon);
+                    const isMaxReached = currentLockedTotal >= MAX_TOTAL_LOCKS;
+
                     for (let type in STAT_CONFIG) {
                         const conf = STAT_CONFIG[type];
                         const ivData = mon.ivs[type];
@@ -524,6 +518,17 @@
                         const isOC = !!mon.overclockedStats[type];
                         const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
                         
+                        /* 
+                         * 【核心修正部】
+                         * ロック数が上限（2個）に達している場合、
+                         * 未選択（未ロック＆未OC）の項目のチェックボックス要素そのものをDOMから完全削除（未描画）にする。
+                         * 既存選択の解除が行われて上限が解除された場合、自動的に再描画されて出現する。
+                         */
+                        let lockCheckboxHTML = "";
+                        if (!isMaxReached || isLocked) {
+                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
+                        }
+
                         ivGridHTML += `
                             <div class="iv-item">
                                 <div>
@@ -532,8 +537,8 @@
                                     <span style="font-size:11px; color:#888;">(+${ivData.value})</span>
                                 </div>
                                 <div style="display:flex; align-items:center;">
-                                    <label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>
-                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${mon.hasOverclocked ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
+                                    ${lockCheckboxHTML}
+                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${mon.hasOverclocked || (isMaxReached && !isOC) ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
                                 </div>
                             </div>
                         `;
@@ -667,12 +672,11 @@
                 : '<li style="color:#666;">なし</li>';
         }
 
-        /* 被弾時の画面（カード）シェイク処理 */
         function triggerCardShake(targetCardId) {
             const cardBox = document.getElementById(targetCardId);
             if (cardBox) {
                 cardBox.classList.remove('shake-effect');
-                void cardBox.offsetWidth; // リフロー発生によるアニメーション再再生
+                void cardBox.offsetWidth;
                 cardBox.classList.add('shake-effect');
                 setTimeout(() => cardBox.classList.remove('shake-effect'), 400);
             }
@@ -758,7 +762,6 @@
                 let dmg = Math.round(baseDmg);
                 defender.hp -= dmg;
 
-                // 被弾アニメーション発動
                 const defenderCardId = isAttackerPlayer ? 'enemy-card-box' : 'player-card-box';
                 triggerCardShake(defenderCardId);
 
@@ -792,88 +795,5 @@
             });
         }
     </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>選択条件に応じた完全消去・再出現の例</title>
-  <style>
-    .item-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-  </style>
-</head>
-<body>
-
-<h3>2個選んだらチェックボックスごと消滅（解除で再出現）</h3>
-<div id="container" class="item-list"></div>
-
-<script>
-// 選択対象データ
-const items = [
-  { id: '1', label: '選択肢 A' },
-  { id: '2', label: '選択肢 B' },
-  { id: '3', label: '選択肢 C' },
-  { id: '4', label: '選択肢 D' }
-];
-
-// 現在選択されているIDの集合
-let selectedIds = new Set();
-
-const container = document.getElementById('container');
-
-function render() {
-  container.innerHTML = ''; // 一旦クリアして再描画
-
-  const isLimitReached = selectedIds.size >= 2;
-
-  items.forEach(item => {
-    const isSelected = selectedIds.has(item.id);
-
-    // 2個選択されていて、かつ自身が「選択済み」の場合はDOM自体をレンダリングしない（消滅させる）
-    if (isLimitReached && isSelected) {
-      return; 
-    }
-
-    const wrapper = document.createElement('label');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = isSelected;
-
-    checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        selectedIds.add(item.id);
-      } else {
-        selectedIds.delete(item.id);
-      }
-      // 状態変更後に再描画（これにより選んだものが消えたり、解除で戻ったりする）
-      render();
-    });
-
-    wrapper.appendChild(checkbox);
-    wrapper.appendChild(document.createTextNode(' ' + item.label));
-    container.appendChild(wrapper);
-  });
-
-  // （確認用）解除機能などのテスト用ボタン
-  if (selectedIds.size > 0) {
-    const resetBtn = document.createElement('button');
-    resetBtn.style.marginTop = '10px';
-    resetBtn.textContent = `選択をすべて解除（現在${selectedIds.size}個選択中）`;
-    resetBtn.onclick = () => {
-      selectedIds.clear();
-      render();
-    };
-    container.appendChild(resetBtn);
-  }
-}
-
-// 初回呼び出し
-render();
-</script>
-
 </body>
 </html>
