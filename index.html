@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 個別スタック独立管理版</title>
+    <title>STAR FORGE - AI難易度拡張版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -33,13 +33,20 @@
         .mode-title { font-size: 18px; color: #00d2ff; font-weight: bold; margin-bottom: 12px; }
         .pass-input { background: #111; border: 1px solid #666; color: #ffeb3b; font-size: 18px; font-weight: bold; padding: 10px; border-radius: 6px; width: 220px; text-align: center; margin-bottom: 12px; outline: none; }
 
-        .start-btn { font-size: 15px; padding: 10px 18px; background: #4caf50; color: white; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin: 4px; }
-        .start-btn-blue { background: #2196f3; }
+        .ai-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+        .ai-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 6px; text-align: left; }
+        .ai-card-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .ai-card-desc { font-size: 11px; color: #aaa; line-height: 1.3; }
+
+        .start-btn { font-size: 13px; padding: 6px 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+        .start-btn-blue { background: #2196f3; font-size: 15px; padding: 10px 18px; color: white; }
         
-        .btn-easy { background: #4caf50; }
-        .btn-normal { background: #2196f3; }
+        .btn-novice { background: #8bc34a; color: #000; }
+        .btn-easy { background: #4caf50; color: #fff; }
+        .btn-normal { background: #2196f3; color: #fff; }
         .btn-hard { background: #ff9800; color: #000; }
         .btn-oni { background: #f44336; color: #fff; text-shadow: 0 0 4px #000; }
+        .btn-despair { background: linear-gradient(135deg, #9c27b0 0%, #3f51b5 100%); color: #fff; text-shadow: 0 0 4px #000; border: 1px solid #e91e63; }
 
         #lobby-screen { display: none; text-align: center; padding: 40px 20px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #00d2ff; }
         .room-code-display { font-size: 28px; color: #ffeb3b; font-weight: bold; background: #111; padding: 10px 20px; border-radius: 8px; display: inline-block; margin: 15px 0; border: 1px solid #444; }
@@ -176,11 +183,56 @@
         <p class="subtitle">- オンライン通信対戦 & AIバトル -</p>
 
         <div class="mode-box">
-            <div class="mode-title">🤖 AI対戦モード</div>
-            <button class="start-btn btn-easy" onclick="startAIBattle('easy')">かんたん</button>
-            <button class="start-btn btn-normal" onclick="startAIBattle('normal')">ふつう</button>
-            <button class="start-btn btn-hard" onclick="startAIBattle('hard')">むずかしい</button>
-            <button class="start-btn btn-oni" onclick="startAIBattle('oni')">👹 おに</button>
+            <div class="mode-title">🤖 AI対戦モード (難易度全6段階)</div>
+            <div class="ai-grid">
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>🌱 見習い</span>
+                        <button class="start-btn btn-novice" onclick="startAIBattle('novice')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">完全ランダム思考。気まぐれに技を出してきます。</div>
+                </div>
+
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>🟢 かんたん</span>
+                        <button class="start-btn btn-easy" onclick="startAIBattle('easy')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">基本ランダムですが、たまにまともな攻撃を行います。</div>
+                </div>
+
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>🔵 ふつう</span>
+                        <button class="start-btn btn-normal" onclick="startAIBattle('normal')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">標準的なバトル。毎ターン安定して攻撃を行います。</div>
+                </div>
+
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>🟠 むずかしい</span>
+                        <button class="start-btn btn-hard" onclick="startAIBattle('hard')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">瀕死の相手を確実に狙い、状況次第で交代を選択。</div>
+                </div>
+
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>👹 おに</span>
+                        <button class="start-btn btn-oni" onclick="startAIBattle('oni')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">戦況判断が鋭く、ピンチの仲間を守るように交代。</div>
+                </div>
+
+                <div class="ai-card">
+                    <div class="ai-card-title">
+                        <span>💀 絶望 (神級)</span>
+                        <button class="start-btn btn-despair" onclick="startAIBattle('despair')">選択</button>
+                    </div>
+                    <div class="ai-card-desc">完全なダメージ・毒・出血計算に基づく最適解行動。</div>
+                </div>
+            </div>
         </div>
 
         <div class="mode-box">
@@ -361,7 +413,6 @@
 
         const STAT_BASE = { hp: 1000, atk: 200, def: 100, spd: 50, critRate: 5, critDmg: 50 };
 
-        // 🟢 各スタックが独立して2ターン持続することが伝わる表現にテキストを統一
         const ABILITY_POOL = {
             1: [
                 "微再生（毎ターンHP5%回復）", 
@@ -441,7 +492,14 @@
         function startAIBattle(diff) {
             gameMode = "AI";
             aiDifficulty = diff;
-            const names = { easy: "AI (かんたん)", normal: "AI (ふつう)", hard: "AI (むずかしい)", oni: "👹 AI (おに)" };
+            const names = { 
+                novice: "AI (見習い)", 
+                easy: "AI (かんたん)", 
+                normal: "AI (ふつう)", 
+                hard: "AI (むずかしい)", 
+                oni: "👹 AI (おに)",
+                despair: "💀 AI (絶望)"
+            };
             enemyPlayerName = names[diff];
 
             document.getElementById('start-screen').style.display = "none";
@@ -700,9 +758,8 @@
                 critDmg: STAT_BASE.critDmg + mon.ivs.critDmg.value + extraCritDmg,
                 abilities: mon.slots.map(s => s.ability),
                 hasEndured: false,
-                // 🟢 単一の数ではなく「残りターン数を持ったオブジェクトの配列」で個別管理
-                poisonDebuffs: [], // 例: [{ turns: 2 }, { turns: 1 }]
-                bleedDebuffs: []   // 例: [{ turns: 2 }]
+                poisonDebuffs: [],
+                bleedDebuffs: []
             };
         }
 
@@ -759,12 +816,10 @@
             }
         }
 
-        // 🟢 状態異常バッジの表示ヘルパー（各残りターン数ごとの内訳を表示）
         function getDebuffBadgeHTML(debuffArray, type) {
             if (!debuffArray || debuffArray.length === 0) return "";
             const count = debuffArray.length;
             
-            // 残り1Tと残り2Tの個数を集計
             const t1 = debuffArray.filter(d => d.turns === 1).length;
             const t2 = debuffArray.filter(d => d.turns === 2).length;
             let detailStr = [];
@@ -794,7 +849,6 @@
             document.getElementById('p-crit-rate').textContent = pMon.critRate;
             document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
 
-            // 🟢 自分の状態異常バッジ
             let pBadgesHTML = getDebuffBadgeHTML(pMon.poisonDebuffs, 'poison') + getDebuffBadgeHTML(pMon.bleedDebuffs, 'bleed');
             document.getElementById('p-status-badges').innerHTML = pBadgesHTML;
 
@@ -811,7 +865,6 @@
             document.getElementById('e-crit-rate').textContent = eMon.critRate;
             document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
 
-            // 🟢 相手の状態異常バッジ
             let eBadgesHTML = getDebuffBadgeHTML(eMon.poisonDebuffs, 'poison') + getDebuffBadgeHTML(eMon.bleedDebuffs, 'bleed');
             document.getElementById('e-status-badges').innerHTML = eBadgesHTML;
 
@@ -922,12 +975,94 @@
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
+        // 🧠 AI思考ロジック（難易度全6種）
+        function getAIChosenAction() {
+            const eMon = enemyTeam[eActiveIdx];
+            const pMon = playerTeam[pActiveIdx];
+            const aliveIndexes = enemyTeam.map((m, i) => (m.hp > 0 && i !== eActiveIdx) ? i : -1).filter(i => i !== -1);
+
+            // 1. 見習い (🌱): 完全ランダム
+            if (aiDifficulty === "novice") {
+                if (aliveIndexes.length > 0 && Math.random() < 0.3) {
+                    const randIndex = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
+                    return { type: 'switch', detail: randIndex };
+                }
+                return { type: 'attack', detail: null };
+            }
+
+            // 2. かんたん (🟢): 稀に思考、基本攻撃
+            if (aiDifficulty === "easy") {
+                if (eMon.hp / eMon.maxHp < 0.2 && aliveIndexes.length > 0 && Math.random() < 0.3) {
+                    return { type: 'switch', detail: aliveIndexes[0] };
+                }
+                return { type: 'attack', detail: null };
+            }
+
+            // 3. ふつう (🔵): 常に攻撃
+            if (aiDifficulty === "normal") {
+                return { type: 'attack', detail: null };
+            }
+
+            // 4. むずかしい (🟠): ダメージ推定を行い、致死攻撃や交代を狙う
+            let approxDmg = Math.round(eMon.atk * (100 / (100 + pMon.def)));
+            if (pMon.bleedDebuffs.length > 0) approxDmg *= (1 + pMon.bleedDebuffs.length * 0.15);
+
+            if (aiDifficulty === "hard") {
+                // 確定で倒せるなら絶対攻撃
+                if (approxDmg >= pMon.hp) return { type: 'attack', detail: null };
+                // 自分のHPが15%未満で交代先があれば交代
+                if (eMon.hp / eMon.maxHp < 0.15 && aliveIndexes.length > 0) {
+                    return { type: 'switch', detail: aliveIndexes[0] };
+                }
+                return { type: 'attack', detail: null };
+            }
+
+            // 5. おに (👹): 有利なステータスの味方へ戦略交代
+            if (aiDifficulty === "oni") {
+                if (approxDmg >= pMon.hp) return { type: 'attack', detail: null };
+                
+                if (eMon.hp / eMon.maxHp < 0.25 && aliveIndexes.length > 0) {
+                    // 一番HPが多い控えを選択
+                    let bestIdx = aliveIndexes[0];
+                    aliveIndexes.forEach(idx => {
+                        if (enemyTeam[idx].hp > enemyTeam[bestIdx].hp) bestIdx = idx;
+                    });
+                    return { type: 'switch', detail: bestIdx };
+                }
+                return { type: 'attack', detail: null };
+            }
+
+            // 6. 絶望・神級 (💀): 精密ダメージシミュレーション
+            if (aiDifficulty === "despair") {
+                // 会心含む最大期待値を考慮
+                let maxExpectedDmg = approxDmg * (1 + (eMon.critRate / 100) * (0.5 + eMon.critDmg / 100));
+                
+                // 攻撃でプレイヤーを撃破できるか？
+                if (maxExpectedDmg >= pMon.hp) return { type: 'attack', detail: null };
+
+                // 自分のHPがヤバく、敵の攻撃で1確されそうな場合、耐久力の一番高い控えへ交代
+                let enemyAtkToMe = Math.round(pMon.atk * (100 / (100 + eMon.def)));
+                if (eMon.hp <= enemyAtkToMe && aliveIndexes.length > 0) {
+                    let safestIdx = aliveIndexes[0];
+                    aliveIndexes.forEach(idx => {
+                        let cand = enemyTeam[idx];
+                        let candDef = cand.def;
+                        if (cand.hp > enemyTeam[safestIdx].hp) safestIdx = idx;
+                    });
+                    return { type: 'switch', detail: safestIdx };
+                }
+                return { type: 'attack', detail: null };
+            }
+
+            return { type: 'attack', detail: null };
+        }
+
         function confirmTurnAction() {
             isMyTurnConfirmed = true;
             document.getElementById('btn-confirm-action').disabled = true;
 
             if (gameMode === "AI") {
-                enemySelectedAction = { type: 'attack', detail: null };
+                enemySelectedAction = getAIChosenAction();
                 isOpponentTurnConfirmed = true;
                 checkExecuteTurn();
             } else {
@@ -987,7 +1122,6 @@
                 }
             }
 
-            // 🟢 ターン終了処理（各スタックの個別の持続カウントダウンと時間切れ処理）
             await applyEndTurnEffects(playerTeam[pActiveIdx]);
             if (await checkFaintedState()) { isProcessingTurn = false; return; }
 
@@ -1008,7 +1142,6 @@
             let isCrit = Math.random() * 100 < attacker.critRate;
             if (isCrit) baseDmg *= (1.5 + attacker.critDmg / 100);
 
-            // 被ダメージ軽減系アビリティ
             defender.abilities.forEach(abi => {
                 if (abi.includes("かすり傷")) baseDmg *= 0.95;
                 if (abi.includes("鉄壁")) baseDmg *= 0.88;
@@ -1016,13 +1149,12 @@
                 if (abi.includes("絶対防御")) baseDmg *= 0.65;
             });
 
-            // 🟢 出血の計算（すべての既存スタックを消費して被ダメ上昇）
             if (defender.bleedDebuffs.length > 0) {
                 let stackCount = defender.bleedDebuffs.length;
                 let bleedMultiplier = 1 + (stackCount * 0.15);
                 baseDmg *= bleedMultiplier;
                 logMessage(`🩸 ${defender.name} は出血（x${stackCount}）により被ダメージが ${Math.round((bleedMultiplier-1)*100)}% 増加！`, 'log-bleed');
-                defender.bleedDebuffs = []; // 被攻撃で全消費
+                defender.bleedDebuffs = [];
             }
 
             let dmg = Math.round(baseDmg);
@@ -1033,12 +1165,10 @@
 
             logMessage(`${attacker.name} の攻撃！ ${isCrit ? '<span class="log-crit">💥 会心の一撃！</span>' : ''} ${defender.name} に <span class="log-damage">${dmg}</span> のダメージ！`, 'log-attack');
 
-            // 🟢 攻撃時の追加効果（吸血・毒付与・出血付与）
             let addedPoison = 0;
             let addedBleed = 0;
 
             attacker.abilities.forEach(abi => {
-                // 吸血
                 let drainPercent = 0;
                 if (abi.includes("微弱吸血")) drainPercent = 0.10;
                 if (abi.includes("吸血の構え")) drainPercent = 0.20;
@@ -1060,7 +1190,6 @@
                 if (abi.includes("血の惨劇")) addedBleed += 3;
             });
 
-            // 🟢 付与された数だけ、それぞれ独立して「残り2ターン」のスタックオブジェクトを追加
             if (addedPoison > 0) {
                 for (let i = 0; i < addedPoison; i++) {
                     defender.poisonDebuffs.push({ turns: 2 });
@@ -1075,7 +1204,6 @@
                 logMessage(`🩸 ${defender.name} に出血が ${addedBleed} スタック付与された！（現在:合計x${defender.bleedDebuffs.length}）`, 'log-bleed');
             }
 
-            // 不屈の魂チェック
             if (defender.hp <= 0 && defender.abilities.some(a => a.includes("不屈の魂")) && !defender.hasEndured) {
                 defender.hp = 1;
                 defender.hasEndured = true;
@@ -1118,7 +1246,20 @@
             }
 
             if (eFainted && hasEAlive) {
-                const nextEIdx = enemyTeam.findIndex(m => m.hp > 0);
+                const aliveIndexes = enemyTeam.map((m, i) => m.hp > 0 ? i : -1).filter(i => i !== -1);
+                
+                // AI難易度に応じた死亡時交代先の選択
+                let nextEIdx = aliveIndexes[0];
+                if (aiDifficulty === "oni" || aiDifficulty === "despair") {
+                    // 最もHPが高いモンスターをくり出す
+                    aliveIndexes.forEach(idx => {
+                        if (enemyTeam[idx].hp > enemyTeam[nextEIdx].hp) nextEIdx = idx;
+                    });
+                } else if (aiDifficulty === "novice") {
+                    // 完全ランダム
+                    nextEIdx = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
+                }
+
                 eActiveIdx = nextEIdx;
                 logMessage(`🔄 ${enemyPlayerName} は <span class="log-swap">${enemyTeam[eActiveIdx].name}</span> をくり出した！`, 'log-swap');
                 if (gameMode !== "AI") {
@@ -1130,11 +1271,9 @@
             return true;
         }
 
-        // 🟢 ターン終了処理：スタックごとの独立した2ターン経過管理・段階解除
         async function applyEndTurnEffects(mon) {
             if (mon.hp <= 0) return;
 
-            // 1. 再生アビリティ
             mon.abilities.forEach(abi => {
                 let healPercent = 0;
                 if (abi.includes("微再生")) healPercent = 0.05;
@@ -1148,16 +1287,13 @@
                 }
             });
 
-            // 2. 毒スリップダメージ & 個別スタック減算
             if (mon.poisonDebuffs.length > 0 && mon.hp > 0) {
                 let poisonDmg = Math.round(mon.maxHp * 0.04 * mon.poisonDebuffs.length);
                 mon.hp -= poisonDmg;
                 logMessage(`☠️ ${mon.name} は毒（x${mon.poisonDebuffs.length}）のダメージにより <span class="log-damage">${poisonDmg}</span> のダメージ！`, 'log-poison');
                 
-                // 全毒スタックの持続ターンを1減らす
                 mon.poisonDebuffs.forEach(d => d.turns -= 1);
 
-                // 2ターン経過した（残りターン数0になった）スタックの数をカウントして除去
                 const expiredCount = mon.poisonDebuffs.filter(d => d.turns <= 0).length;
                 mon.poisonDebuffs = mon.poisonDebuffs.filter(d => d.turns > 0);
 
@@ -1169,7 +1305,6 @@
                 await sleep(400);
             }
 
-            // 3. 出血の個別スタック減算（攻撃を受けずに2ターン経過したスタックのみ消滅）
             if (mon.bleedDebuffs.length > 0 && mon.hp > 0) {
                 mon.bleedDebuffs.forEach(d => d.turns -= 1);
 
