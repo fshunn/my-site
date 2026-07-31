@@ -154,11 +154,43 @@
         .log-bleed { color: #ff80ab; font-weight: bold; }
         .log-system { color: #ffeb3b; font-weight: bold; }
 
-        .action-area { text-align: center; margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .btn-group { display: flex; gap: 10px; }
-        .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; }
+        .action-area { text-align: center; margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .btn-group { display: flex; gap: 15px; }
+        .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; transition: all 0.2s ease; border: 2px solid transparent; opacity: 0.6; }
         .btn-attack { background: linear-gradient(180deg, #ff9800 0%, #e65100 100%); color: #fff; }
         .btn-switch { background: linear-gradient(180deg, #2196f3 0%, #0d47a1 100%); color: #fff; }
+
+        /* 選択中ボタンの判別表示用CSS強化 */
+        .action-btn.selected-action {
+            opacity: 1.0 !important;
+            border-color: #ffeb3b !important;
+            box-shadow: 0 0 15px #ffeb3b, inset 0 0 8px #ffffff !important;
+            transform: scale(1.1);
+        }
+
+        .selected-action-box {
+            background: #111;
+            border: 2px solid #555;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #aaa;
+            transition: all 0.2s ease;
+        }
+        .selected-action-box.active-attack {
+            border-color: #ff9800;
+            color: #ffeb3b;
+            background: #2a1500;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.4);
+        }
+        .selected-action-box.active-switch {
+            border-color: #2196f3;
+            color: #00d2ff;
+            background: #001a33;
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.4);
+        }
+
         .btn-confirm { background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%); color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
@@ -341,7 +373,7 @@
                 <button id="btn-select-attack" class="action-btn btn-attack" onclick="selectTurnAction('attack')">⚔️ 攻撃</button>
                 <button id="btn-select-switch" class="action-btn btn-switch" onclick="openSwitchModal(false)">🔄 交代</button>
             </div>
-            <div id="selected-action-display" style="color:#aaa; font-size:13px;">選択中の行動: なし</div>
+            <div id="selected-action-display" class="selected-action-box">選択中の行動: 未選択</div>
             <button id="btn-confirm-action" class="action-btn btn-confirm" onclick="confirmTurnAction()" disabled>OK (行動を確定)</button>
         </div>
     </div>
@@ -972,11 +1004,29 @@
             box.scrollTop = box.scrollHeight;
         }
 
+        // 行動選択の強調表示処理を強化
         function selectTurnAction(type, detail = null) {
             if (isProcessingTurn || isMyTurnConfirmed) return;
             myTurnChoice = { type, detail };
-            const label = type === 'attack' ? '⚔️ 攻撃' : `🔄 交代 (${playerTeam[detail].name})`;
-            document.getElementById('selected-action-display').textContent = `選択中の行動: ${label}`;
+
+            const attackBtn = document.getElementById('btn-select-attack');
+            const switchBtn = document.getElementById('btn-select-switch');
+            const displayBox = document.getElementById('selected-action-display');
+
+            attackBtn.classList.remove('selected-action');
+            switchBtn.classList.remove('selected-action');
+            displayBox.classList.remove('active-attack', 'active-switch');
+
+            if (type === 'attack') {
+                attackBtn.classList.add('selected-action');
+                displayBox.classList.add('active-attack');
+                displayBox.textContent = '選択中: ⚔️ 攻撃';
+            } else if (type === 'switch') {
+                switchBtn.classList.add('selected-action');
+                displayBox.classList.add('active-switch');
+                displayBox.textContent = `選択中: 🔄 交代 (${playerTeam[detail].name})`;
+            }
+
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
@@ -1058,7 +1108,15 @@
             myTurnChoice = null;
             enemySelectedAction = null;
             
-            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+            const attackBtn = document.getElementById('btn-select-attack');
+            const switchBtn = document.getElementById('btn-select-switch');
+            const displayBox = document.getElementById('selected-action-display');
+
+            attackBtn.classList.remove('selected-action');
+            switchBtn.classList.remove('selected-action');
+            displayBox.classList.remove('active-attack', 'active-switch');
+
+            displayBox.textContent = "選択中の行動: 未選択";
             document.getElementById('turn-status-tag').textContent = "行動を選択してください";
             
             setActionButtonsDisabled(false);
