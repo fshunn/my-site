@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - おそらく</title>
+    <title>STAR FORGE - 交代システム完全復旧版</title>
     <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -56,6 +56,11 @@
         .pt { font-size: 24px; color: #ffeb3b; font-weight: bold; }
         .star-total { font-size: 24px; color: #ff9800; font-weight: bold; }
 
+        /* モンスター切り替えタブ */
+        .tab-container { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #aaa; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; }
+        .tab-btn.active { background: #0088ff; color: #fff; border-color: #00d2ff; }
+
         .monster-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         .monster-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px; }
         .monster-name-input { background: #181818; border: 1px solid #555; color: #00d2ff; font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; width: 220px; }
@@ -74,7 +79,7 @@
 
         .lock-label { font-size: 12px; color: #ffea00; cursor: pointer; user-select: none; display: flex; align-items: center; margin-right: 6px; font-weight: bold; }
 
-        /* --- 圧倒的な視覚差を生むボタンデザイン --- */
+        /* --- ボタンデザイン --- */
         button { 
             padding: 6px 12px; 
             margin: 2px; 
@@ -88,7 +93,6 @@
             transition: all 0.1s ease;
         }
 
-        /* 有効ボタン（押せる状態）：鮮やか・立体感・発光 */
         button:not(:disabled) {
             cursor: pointer !important;
             opacity: 1.0 !important;
@@ -100,7 +104,6 @@
             transform: translateY(-1px);
         }
 
-        /* 無効ボタン（押せない状態）：暗黒化・完全に死んだUI表現 */
         button:disabled { 
             background: #181818 !important; 
             color: #444 !important; 
@@ -113,7 +116,6 @@
             text-decoration: line-through;
         }
 
-        /* タイプ別カラー */
         button.unlock-btn:not(:disabled) { background: linear-gradient(180deg, #00e676 0%, #00a855 100%); color: #000; border-color: #69f0ae; }
         button.reroll-btn:not(:disabled) { background: linear-gradient(180deg, #ff9100 0%, #c66900 100%); color: #000; border-color: #ffd180; }
         button.iv-reroll-btn:not(:disabled) { background: linear-gradient(180deg, #d500f9 0%, #8e00a8 100%); color: #fff; border-color: #ea80fc; }
@@ -142,9 +144,10 @@
         .ability-list { list-style: none; padding: 0; margin: 0; color: #00d2ff; }
         .ability-list li { margin-bottom: 3px; }
 
-        .battle-log-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6; }
+        .battle-log-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6; }
         .log-entry { margin-bottom: 4px; }
         .log-attack { color: #00d2ff; font-weight: bold; }
+        .log-swap { color: #00e676; font-weight: bold; }
         .log-crit { color: #ffea00; font-weight: bold; font-size: 15px; text-shadow: 0 0 4px #ffea00; }
         .log-damage { color: #ff1744; font-weight: bold; font-size: 16px; text-shadow: 0 0 3px #ff1744; }
         .log-system { color: #ffeb3b; font-weight: bold; }
@@ -153,7 +156,15 @@
         .btn-group { display: flex; gap: 10px; }
         .action-btn { font-size: 16px; padding: 12px 24px; font-weight: bold; border-radius: 8px; }
         .btn-attack { background: linear-gradient(180deg, #ff9800 0%, #e65100 100%); color: #fff; }
+        .btn-switch { background: linear-gradient(180deg, #2196f3 0%, #0d47a1 100%); color: #fff; }
         .btn-confirm { background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%); color: #fff; font-size: 18px; padding: 12px 40px; width: 280px; }
+
+        /* モーダルダイアログ (交代選択用) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; }
+        .modal-box { background: #282828; border: 2px solid #00d2ff; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .switch-option { background: #1a1a1a; border: 1px solid #444; border-radius: 8px; padding: 12px; margin: 10px 0; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .switch-option:hover:not(.disabled) { border-color: #00d2ff; background: #222; }
+        .switch-option.disabled { opacity: 0.4; cursor: not-allowed; }
 
         .turn-status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; }
     </style>
@@ -206,6 +217,13 @@
                 <div>🪙 所持コイン: <span id="point" class="pt">5000</span> pt</div>
                 <div>合計コスト: <span id="total-party-stars" class="star-total">★0</span> / ★7</div>
             </div>
+        </div>
+
+        <!-- タブ切り替えバー -->
+        <div class="tab-container" style="margin-top: 15px;">
+            <div id="tab-0" class="tab-btn active" onclick="switchMonsterTab(0)">モンスター 1</div>
+            <div id="tab-1" class="tab-btn" onclick="switchMonsterTab(1)">モンスター 2</div>
+            <div id="tab-2" class="tab-btn" onclick="switchMonsterTab(2)">モンスター 3</div>
         </div>
 
         <div id="monsters-container"></div>
@@ -270,9 +288,19 @@
         <div class="action-area">
             <div class="btn-group">
                 <button id="btn-select-attack" class="action-btn btn-attack" onclick="selectTurnAction('attack')">⚔️ 攻撃</button>
+                <button id="btn-select-switch" class="action-btn btn-switch" onclick="openSwitchModal()">🔄 交代</button>
             </div>
             <div id="selected-action-display" style="color:#aaa; font-size:13px;">選択中の行動: なし</div>
             <button id="btn-confirm-action" class="action-btn btn-confirm" onclick="confirmTurnAction()" disabled>OK (行動を確定)</button>
+        </div>
+    </div>
+
+    <!-- 交代選択モーダル -->
+    <div id="switch-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:#00d2ff; margin-top:0;">🔄 交代先のモンスターを選択</h3>
+            <div id="switch-list"></div>
+            <button onclick="closeSwitchModal()" style="margin-top:15px; background:#555;">キャンセル</button>
         </div>
     </div>
 
@@ -283,6 +311,7 @@
         let aiDifficulty = "normal";
         let peer = null, conn = null;
         
+        let activeTabIdx = 0;
         let isMyBuildReady = false;
         let isOpponentBuildReady = false;
 
@@ -416,6 +445,14 @@
             if (gameMode !== "AI") sendData({ type: 'BUILD_STATUS', isReady: isMyBuildReady, playerName: playerName });
         }
 
+        function switchMonsterTab(idx) {
+            activeTabIdx = idx;
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`tab-${i}`).className = `tab-btn ${i === idx ? 'active' : ''}`;
+            }
+            updateUI();
+        }
+
         /* 構築ロジック & IV生成 */
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
@@ -470,7 +507,6 @@
             updateUI();
         }
 
-        /* ロック個数（オーバークロック含む）の集計 */
         function getLockedCount(mon) {
             const lockCount = Object.keys(mon.locks).filter(k => mon.locks[k]).length;
             const ocCount = Object.keys(mon.overclockedStats).filter(k => mon.overclockedStats[k]).length;
@@ -482,9 +518,7 @@
             if (mon.locks[type]) {
                 delete mon.locks[type];
             } else {
-                if (getLockedCount(mon) >= MAX_TOTAL_LOCKS) {
-                    return;
-                }
+                if (getLockedCount(mon) >= MAX_TOTAL_LOCKS) return;
                 mon.locks[type] = true;
             }
             updateUI();
@@ -496,9 +530,7 @@
             const cost = OVERCLOCK_COST_TABLE[rarity];
             
             if (mon.hasOverclocked) return alert("オーバークロックは1体につき1回までです。");
-            if (getLockedCount(mon) >= MAX_TOTAL_LOCKS && !mon.locks[type]) {
-                return;
-            }
+            if (getLockedCount(mon) >= MAX_TOTAL_LOCKS && !mon.locks[type]) return;
             if (remainingPt < cost) return alert("コインが足りません！");
 
             remainingPt -= cost;
@@ -516,130 +548,125 @@
             container.innerHTML = "";
 
             const currentStarsTotal = getPartyTotalStars();
+            const mon = monsters[activeTabIdx];
+            const monIdx = activeTabIdx;
 
-            monsters.forEach((mon, monIdx) => {
-                const card = document.createElement('div');
-                card.className = "monster-card";
+            const card = document.createElement('div');
+            card.className = "monster-card";
 
-                let slotsHTML = "";
-                if (mon.slots.length === 0) {
-                    // 購入ボタンの判定＆「なぜ押せないか」理由テキストの付与
-                    const getBuyBtnHTML = (star, cost) => {
-                        const starExceeded = currentStarsTotal + star > MAX_PARTY_STARS;
-                        const ptShort = remainingPt < cost;
-                        const isDisabled = starExceeded || ptShort;
-                        
-                        let reason = "";
-                        if (starExceeded) reason = " [★上限]";
-                        else if (ptShort) reason = " [pt不足]";
+            let slotsHTML = "";
+            if (mon.slots.length === 0) {
+                const getBuyBtnHTML = (star, cost) => {
+                    const starExceeded = currentStarsTotal + star > MAX_PARTY_STARS;
+                    const ptShort = remainingPt < cost;
+                    const isDisabled = starExceeded || ptShort;
+                    
+                    let reason = "";
+                    if (starExceeded) reason = " [★上限]";
+                    else if (ptShort) reason = " [pt不足]";
 
-                        return `<button class="unlock-btn" onclick="buySlot(${monIdx}, ${star}, ${cost})" ${isDisabled ? 'disabled' : ''}>★${star} 開放 (${cost}pt)${reason}</button>`;
-                    };
+                    return `<button class="unlock-btn" onclick="buySlot(${monIdx}, ${star}, ${cost})" ${isDisabled ? 'disabled' : ''}>★${star} 開放 (${cost}pt)${reason}</button>`;
+                };
 
-                    slotsHTML = `
-                        <div class="buy-area">
-                            <div style="font-size:12px; color:#aaa; margin-bottom:5px;">枠を選択して購入:</div>
-                            ${getBuyBtnHTML(1, 300)}
-                            ${getBuyBtnHTML(2, 600)}
-                            ${getBuyBtnHTML(3, 1000)}
-                            ${getBuyBtnHTML(4, 1500)}
+                slotsHTML = `
+                    <div class="buy-area">
+                        <div style="font-size:12px; color:#aaa; margin-bottom:5px;">枠を選択して購入:</div>
+                        ${getBuyBtnHTML(1, 300)}
+                        ${getBuyBtnHTML(2, 600)}
+                        ${getBuyBtnHTML(3, 1000)}
+                        ${getBuyBtnHTML(4, 1500)}
+                    </div>
+                `;
+            } else {
+                mon.slots.forEach((s, sIdx) => {
+                    const canReroll = remainingPt >= REROLL_COST;
+                    slotsHTML += `
+                        <div class="slot">
+                            <div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div>
+                            <button class="reroll-btn" onclick="rerollAbility(${monIdx}, ${sIdx})" ${canReroll ? '' : 'disabled'}>
+                                🎲 変更 (${REROLL_COST}pt)${canReroll ? '' : ' [pt不足]'}
+                            </button>
                         </div>
                     `;
-                } else {
-                    mon.slots.forEach((s, sIdx) => {
-                        const canReroll = remainingPt >= REROLL_COST;
-                        slotsHTML += `
-                            <div class="slot">
-                                <div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div>
-                                <button class="reroll-btn" onclick="rerollAbility(${monIdx}, ${sIdx})" ${canReroll ? '' : 'disabled'}>
-                                    🎲 変更 (${REROLL_COST}pt)${canReroll ? '' : ' [pt不足]'}
-                                </button>
-                            </div>
-                        `;
-                    });
-                }
+                });
+            }
 
-                let ivHTML = "";
-                if (mon.slots.length > 0) {
-                    if (!mon.ivs) mon.ivs = generateIVs(null, mon.locks, mon.overclockedStats);
-                    let ivGridHTML = "";
+            let ivHTML = "";
+            if (mon.slots.length > 0) {
+                if (!mon.ivs) mon.ivs = generateIVs(null, mon.locks, mon.overclockedStats);
+                let ivGridHTML = "";
+                
+                const currentLockedTotal = getLockedCount(mon);
+                const isMaxReached = currentLockedTotal >= MAX_TOTAL_LOCKS;
+                const canRerollIV = remainingPt >= IV_REROLL_COST;
+
+                for (let type in STAT_CONFIG) {
+                    const conf = STAT_CONFIG[type];
+                    const ivData = mon.ivs[type];
+                    const isLocked = !!mon.locks[type];
+                    const isOC = !!mon.overclockedStats[type];
+                    const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
                     
-                    const currentLockedTotal = getLockedCount(mon);
-                    const isMaxReached = currentLockedTotal >= MAX_TOTAL_LOCKS;
-                    const canRerollIV = remainingPt >= IV_REROLL_COST;
-
-                    for (let type in STAT_CONFIG) {
-                        const conf = STAT_CONFIG[type];
-                        const ivData = mon.ivs[type];
-                        const isLocked = !!mon.locks[type];
-                        const isOC = !!mon.overclockedStats[type];
-                        const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
-                        
-                        /* チェックボックス：2個選択時に未選択分をDOMから完全消去 */
-                        let lockCheckboxHTML = "";
-                        if (isLocked) {
-                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" checked ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
-                        } else if (!isMaxReached) {
-                            lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
-                        } else {
-                            lockCheckboxHTML = ""; // 消去
-                        }
-
-                        // オーバークロックボタンの無効判定と理由表示
-                        let ocDisabledReason = "";
-                        let isOcDisabled = false;
-
-                        if (mon.hasOverclocked && !isOC) {
-                            isOcDisabled = true;
-                            ocDisabledReason = " [使用済]";
-                        } else if (isMaxReached && !isOC) {
-                            isOcDisabled = true;
-                            ocDisabledReason = " [枠上限]";
-                        } else if (remainingPt < ocCost) {
-                            isOcDisabled = true;
-                            ocDisabledReason = " [pt不足]";
-                        }
-
-                        ivGridHTML += `
-                            <div class="iv-item">
-                                <div>
-                                    <span style="color:#aaa;">${conf.label}:</span> 
-                                    <span class="rank-${ivData.rank}">${ivData.rank}</span> 
-                                    <span style="font-size:11px; color:#888;">(+${ivData.value})</span>
-                                </div>
-                                <div style="display:flex; align-items:center;">
-                                    ${lockCheckboxHTML}
-                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${isOcDisabled ? 'disabled' : ''}>
-                                        ⚡ (${ocCost}pt)${ocDisabledReason}
-                                    </button>
-                                </div>
-                            </div>
-                        `;
+                    let lockCheckboxHTML = "";
+                    if (isLocked) {
+                        lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" checked ${isOC ? 'disabled' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
+                    } else if (!isMaxReached) {
+                        lockCheckboxHTML = `<label class="lock-label"><input type="checkbox" onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>`;
                     }
 
-                    ivHTML = `
-                        <div class="iv-container">
-                            <div class="iv-header">
-                                <span style="font-size:12px; font-weight:bold; color:#ffeb3b;">📊 個体値ステータス</span>
-                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${canRerollIV ? '' : 'disabled'}>
-                                    🎲 全再抽選 (${IV_REROLL_COST}pt)${canRerollIV ? '' : ' [pt不足]'}
+                    let ocDisabledReason = "";
+                    let isOcDisabled = false;
+
+                    if (mon.hasOverclocked && !isOC) {
+                        isOcDisabled = true;
+                        ocDisabledReason = " [使用済]";
+                    } else if (isMaxReached && !isOC) {
+                        isOcDisabled = true;
+                        ocDisabledReason = " [枠上限]";
+                    } else if (remainingPt < ocCost) {
+                        isOcDisabled = true;
+                        ocDisabledReason = " [pt不足]";
+                    }
+
+                    ivGridHTML += `
+                        <div class="iv-item">
+                            <div>
+                                <span style="color:#aaa;">${conf.label}:</span> 
+                                <span class="rank-${ivData.rank}">${ivData.rank}</span> 
+                                <span style="font-size:11px; color:#888;">(+${ivData.value})</span>
+                            </div>
+                            <div style="display:flex; align-items:center;">
+                                ${lockCheckboxHTML}
+                                <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${isOcDisabled ? 'disabled' : ''}>
+                                    ⚡ (${ocCost}pt)${ocDisabledReason}
                                 </button>
                             </div>
-                            <div class="iv-grid">${ivGridHTML}</div>
                         </div>
                     `;
                 }
 
-                card.innerHTML = `
-                    <div class="monster-header">
-                        <input type="text" class="monster-name-input" value="${mon.name}" onchange="monsters[${monIdx}].name = this.value">
-                        <span class="star-count">★${mon.currentStars}</span>
+                ivHTML = `
+                    <div class="iv-container">
+                        <div class="iv-header">
+                            <span style="font-size:12px; font-weight:bold; color:#ffeb3b;">📊 個体値ステータス</span>
+                            <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})" ${canRerollIV ? '' : 'disabled'}>
+                                🎲 全再抽選 (${IV_REROLL_COST}pt)${canRerollIV ? '' : ' [pt不足]'}
+                            </button>
+                        </div>
+                        <div class="iv-grid">${ivGridHTML}</div>
                     </div>
-                    ${slotsHTML}
-                    ${ivHTML}
                 `;
-                container.appendChild(card);
-            });
+            }
+
+            card.innerHTML = `
+                <div class="monster-header">
+                    <input type="text" class="monster-name-input" value="${mon.name}" onchange="monsters[${monIdx}].name = this.value">
+                    <span class="star-count">★${mon.currentStars}</span>
+                </div>
+                ${slotsHTML}
+                ${ivHTML}
+            `;
+            container.appendChild(card);
         }
 
         function createCalculatedMonster(mon) {
@@ -747,6 +774,50 @@
                 : '<li style="color:#666;">なし</li>';
         }
 
+        /* --- 交代ダイアログ機能 --- */
+        function openSwitchModal() {
+            const listContainer = document.getElementById('switch-list');
+            listContainer.innerHTML = "";
+            let aliveCount = 0;
+
+            playerTeam.forEach((mon, idx) => {
+                if (idx === pActiveIdx) return;
+
+                const isFainted = mon.hp <= 0;
+                if (!isFainted) aliveCount++;
+
+                const opt = document.createElement('div');
+                opt.className = `switch-option ${isFainted ? 'disabled' : ''}`;
+                opt.innerHTML = `
+                    <div>
+                        <strong style="color:#00d2ff;">${mon.name}</strong><br>
+                        <span style="font-size:12px; color:#aaa;">HP: ${Math.max(0, mon.hp)} / ${mon.maxHp}</span>
+                    </div>
+                    <span style="color:${isFainted ? '#f44336' : '#4caf50'}; font-weight:bold;">
+                        ${isFainted ? 'ひんし' : '選択可'}
+                    </span>
+                `;
+
+                if (!isFainted) {
+                    opt.onclick = () => {
+                        selectTurnAction('switch', idx);
+                        closeSwitchModal();
+                    };
+                }
+                listContainer.appendChild(opt);
+            });
+
+            if (aliveCount === 0 && listContainer.innerHTML === "") {
+                listContainer.innerHTML = "<div style='color:#aaa; padding:10px;'>交代できるモンスターがいません！</div>";
+            }
+
+            document.getElementById('switch-modal').style.display = "flex";
+        }
+
+        function closeSwitchModal() {
+            document.getElementById('switch-modal').style.display = "none";
+        }
+
         function triggerCardShake(targetCardId) {
             const cardBox = document.getElementById(targetCardId);
             if (cardBox) {
@@ -768,7 +839,8 @@
 
         function selectTurnAction(type, detail = null) {
             myTurnChoice = { type, detail };
-            document.getElementById('selected-action-display').textContent = `選択中の行動: ${type === 'attack' ? '⚔️ 攻撃' : '🔄 交代'}`;
+            const label = type === 'attack' ? '⚔️ 攻撃' : `🔄 交代 (${playerTeam[detail].name})`;
+            document.getElementById('selected-action-display').textContent = `選択中の行動: ${label}`;
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
@@ -777,6 +849,7 @@
             document.getElementById('btn-confirm-action').disabled = true;
 
             if (gameMode === "AI") {
+                // AIは基本的に攻撃を選択（ひんし時のみ交代ロジックも組み込み可）
                 enemySelectedAction = { type: 'attack', detail: null };
                 isOpponentTurnConfirmed = true;
                 checkExecuteTurn();
@@ -793,24 +866,43 @@
             }
         }
 
+        /* 交代と優先度を考慮したターン実行ロジック */
         async function processTurn() {
             logMessage(`--- ターン処理開始 ---`, 'log-system');
 
+            // 1. 交代アクションを最優先で処理（攻撃より先に行う）
+            if (myTurnChoice.type === 'switch') {
+                pActiveIdx = myTurnChoice.detail;
+                logMessage(`🔄 ${playerName} は <span class="log-swap">${playerTeam[pActiveIdx].name}</span> に交代した！`, 'log-swap');
+                updateBattleDisplay();
+                await sleep(500);
+            }
+
+            if (enemySelectedAction.type === 'switch') {
+                eActiveIdx = enemySelectedAction.detail;
+                logMessage(`🔄 ${enemyPlayerName} は <span class="log-swap">${enemyTeam[eActiveIdx].name}</span> に交代した！`, 'log-swap');
+                updateBattleDisplay();
+                await sleep(500);
+            }
+
+            // 2. 攻撃アクションの素早さ判定と実行
             const pMon = playerTeam[pActiveIdx];
             const eMon = enemyTeam[eActiveIdx];
 
-            let pFirst = pMon.spd >= eMon.spd;
+            if (myTurnChoice.type === 'attack' || enemySelectedAction.type === 'attack') {
+                let pFirst = pMon.spd >= eMon.spd;
 
-            if (pFirst) {
-                await executeSingleAction(pMon, eMon, myTurnChoice, true);
-                if (eMon.hp > 0) await executeSingleAction(eMon, pMon, enemySelectedAction, false);
-            } else {
-                await executeSingleAction(eMon, pMon, enemySelectedAction, false);
-                if (pMon.hp > 0) await executeSingleAction(pMon, eMon, myTurnChoice, true);
+                if (pFirst) {
+                    if (myTurnChoice.type === 'attack' && pMon.hp > 0) await executeSingleAction(pMon, eMon, myTurnChoice, true);
+                    if (enemySelectedAction.type === 'attack' && eMon.hp > 0) await executeSingleAction(eMon, pMon, enemySelectedAction, false);
+                } else {
+                    if (enemySelectedAction.type === 'attack' && eMon.hp > 0) await executeSingleAction(eMon, pMon, enemySelectedAction, false);
+                    if (myTurnChoice.type === 'attack' && pMon.hp > 0) await executeSingleAction(pMon, eMon, myTurnChoice, true);
+                }
             }
 
-            applyEndTurnAbilities(pMon, true);
-            applyEndTurnAbilities(eMon, false);
+            applyEndTurnAbilities(playerTeam[pActiveIdx], true);
+            applyEndTurnAbilities(enemyTeam[eActiveIdx], false);
 
             updateBattleDisplay();
 
