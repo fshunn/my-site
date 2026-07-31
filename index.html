@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - マルチ対応・修正版 (Ver 7.3)</title>
-    <!-- PeerJS ライブラリ読み込み -->
+    <title>STAR FORGE - マルチアビリティ同期・修正版 (Ver 7.4)</title>
+    <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: #fff; max-width: 850px; margin: 0 auto; }
@@ -30,14 +30,6 @@
         .game-title { font-size: 42px; color: #ffeb3b; margin-bottom: 5px; }
         .subtitle { color: #aaa; margin-bottom: 25px; font-size: 15px; }
 
-        .how-to-accordion { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; margin-bottom: 25px; overflow: hidden; text-align: left; }
-        .how-to-header { background: #151922; padding: 12px 20px; font-weight: bold; color: #00d2ff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 16px; }
-        .how-to-header:hover { background: #1a202c; }
-        .how-to-content { display: none; padding: 20px; border-top: 1px solid #333; font-size: 13px; line-height: 1.7; color: #ddd; max-height: 400px; overflow-y: auto; }
-        .how-to-sec { margin-bottom: 15px; }
-        .how-to-sec-title { color: #ffeb3b; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        .how-to-ul { margin: 0; padding-left: 20px; }
-
         .mode-box { background: #1e1e1e; border: 1px solid #444; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .mode-title { font-size: 18px; color: #00d2ff; font-weight: bold; margin-bottom: 12px; }
         .pass-input { background: #111; border: 1px solid #666; color: #ffeb3b; font-size: 18px; font-weight: bold; padding: 10px; border-radius: 6px; width: 220px; text-align: center; margin-bottom: 12px; outline: none; }
@@ -62,11 +54,6 @@
         .header-status { position: sticky; top: 0; z-index: 50; background: #1a1a1a; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .pt { font-size: 24px; color: #ffeb3b; font-weight: bold; }
         .star-total { font-size: 24px; color: #ff9800; font-weight: bold; }
-
-        .cost-table-box { background: #1f242d; border: 1px solid #00d2ff; border-radius: 8px; padding: 12px 16px; margin: 15px 0 20px 0; font-size: 13px; line-height: 1.6; }
-        .cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; color: #ddd; }
-        .cost-badge { background: #111; padding: 6px 10px; border-radius: 4px; border: 1px solid #333; }
-        .cost-val { color: #ffeb3b; font-weight: bold; }
 
         .monster-card { background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         .monster-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px; }
@@ -114,6 +101,7 @@
         .ability-box { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; margin-top: 10px; font-size: 12px; text-align: left; }
         .ability-title { font-weight: bold; color: #ffeb3b; margin-bottom: 4px; font-size: 11px; }
         .ability-list { list-style: none; padding: 0; margin: 0; color: #00d2ff; }
+        .ability-list li { margin-bottom: 3px; }
 
         .battle-log-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6; }
         .log-entry { margin-bottom: 4px; }
@@ -261,7 +249,7 @@
         </div>
     </div>
 
-    <!-- モーダル各種 -->
+    <!-- モーダル -->
     <div id="switch-modal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top:0; color:#00d2ff;">🔄 交代先を選択</h3>
@@ -334,12 +322,10 @@
             4: ["不屈の魂（致死ダメを1度だけHP1で耐える）", "超リジェネ（毎ターンHP20%回復）", "絶対防御（被ダメ35%軽減）", "魔王の吸血（与ダメの35%HP回復）"]
         };
 
-        /* 通信（PeerJS）設定の最適化 */
         function joinLobby(role) {
             const rawPass = document.getElementById('passcode-input').value.trim();
             if (!rawPass) return alert("合言葉を入力してください！");
             
-            // 安全なPeerID文字列に変換（英数字のみ）
             const safePass = rawPass.replace(/[^a-zA-Z0-9]/g, '');
             if (!safePass) return alert("合言葉は半角英数字で入力してください。");
 
@@ -351,51 +337,24 @@
             document.getElementById('display-room-code').textContent = rawPass;
             const statusText = document.getElementById('lobby-status');
 
-            // PeerJSオプション (公式パブリックサーバーを使用)
-            const peerOptions = {
-                host: '0.peerjs.com',
-                port: 443,
-                path: '/',
-                secure: true,
-                debug: 1
-            };
+            const peerOptions = { host: '0.peerjs.com', port: 443, path: '/', secure: true, debug: 1 };
 
             if (role === 'host') {
                 statusText.textContent = "部屋を作成中...";
                 peer = new Peer(roomId, peerOptions);
 
-                peer.on('open', (id) => {
-                    statusText.textContent = "対戦相手の接続を待っています...";
-                });
-
-                peer.on('connection', c => { 
-                    conn = c; 
-                    setupConnection(); 
-                });
-
-                peer.on('error', (err) => { 
-                    console.error("Peer Error:", err);
-                    if (err.type === 'unavailable-id') {
-                        alert("この合言葉は既に使用されています。別の合言葉を試してください。");
-                    } else {
-                        alert("部屋の作成に失敗しました: " + err.type);
-                    }
-                    location.reload(); 
+                peer.on('open', () => { statusText.textContent = "対戦相手の接続を待っています..."; });
+                peer.on('connection', c => { conn = c; setupConnection(); });
+                peer.on('error', (err) => {
+                    alert(err.type === 'unavailable-id' ? "この合言葉は既に使用されています。" : "エラー: " + err.type);
+                    location.reload();
                 });
             } else {
                 statusText.textContent = "ホストの部屋を探しています...";
                 peer = new Peer(peerOptions);
 
-                peer.on('open', () => { 
-                    conn = peer.connect(roomId); 
-                    setupConnection(); 
-                });
-
-                peer.on('error', (err) => { 
-                    console.error("Peer Error:", err);
-                    alert("部屋への接続に失敗しました。合言葉を確認してください。"); 
-                    location.reload(); 
-                });
+                peer.on('open', () => { conn = peer.connect(roomId); setupConnection(); });
+                peer.on('error', (err) => { alert("部屋が見つかりません。合言葉を確認してください。"); location.reload(); });
             }
         }
 
@@ -406,13 +365,8 @@
                 updateUI();
                 notifyBuildStatus();
             });
-
             conn.on('data', data => handleReceiveData(data));
-            
-            conn.on('close', () => {
-                alert("対戦相手との通信が切断されました。");
-                location.reload();
-            });
+            conn.on('close', () => { alert("対戦相手との通信が切断されました。"); location.reload(); });
         }
 
         function startAIBattle(diff) {
@@ -453,7 +407,7 @@
             if (gameMode !== "AI") sendData({ type: 'BUILD_STATUS', isReady: isMyBuildReady, playerName: playerName });
         }
 
-        /* ゲームロジック */
+        /* 構築ロジック & IV生成 */
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
 
@@ -485,6 +439,52 @@
             updateUI();
         }
 
+        function rerollAbility(monIdx, slotIdx) {
+            const mon = monsters[monIdx];
+            if (remainingPt < REROLL_COST) return alert("コインが足りません！");
+            remainingPt -= REROLL_COST;
+            const slot = mon.slots[slotIdx];
+            const pool = ABILITY_POOL[slot.rarity];
+            let newAbi = pool[Math.floor(Math.random() * pool.length)];
+            while (pool.length > 1 && newAbi === slot.ability) {
+                newAbi = pool[Math.floor(Math.random() * pool.length)];
+            }
+            slot.ability = newAbi;
+            updateUI();
+        }
+
+        function rerollIVs(monIdx) {
+            const mon = monsters[monIdx];
+            if (remainingPt < IV_REROLL_COST) return alert("コインが足りません！");
+            remainingPt -= IV_REROLL_COST;
+            mon.ivs = generateIVs(mon.ivs, mon.locks, mon.overclockedStats);
+            updateUI();
+        }
+
+        function toggleLock(monIdx, type) {
+            const mon = monsters[monIdx];
+            if (mon.locks[type]) {
+                delete mon.locks[type];
+            } else {
+                if (Object.keys(mon.locks).length >= MAX_TOTAL_LOCKS) return alert("ロックは最大2つまでです！");
+                mon.locks[type] = true;
+            }
+            updateUI();
+        }
+
+        function applyOverclock(monIdx, type) {
+            const mon = monsters[monIdx];
+            const rarity = mon.slots[0]?.rarity || 1;
+            const cost = OVERCLOCK_COST_TABLE[rarity];
+            if (mon.hasOverclocked) return alert("オーバークロックは1体につき1回までです。");
+            if (remainingPt < cost) return alert("コインが足りません！");
+            remainingPt -= cost;
+            mon.hasOverclocked = true;
+            mon.overclockedStats[type] = true;
+            mon.ivs[type] = { rank: "SPlus", value: STAT_CONFIG[type].overclockVal };
+            updateUI();
+        }
+
         function updateUI() {
             document.getElementById('point').textContent = remainingPt;
             document.getElementById('total-party-stars').textContent = "★" + getPartyTotalStars();
@@ -508,22 +508,65 @@
                         </div>
                     `;
                 } else {
-                    mon.slots.forEach((s) => {
-                        slotsHTML += `<div class="slot"><div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div></div>`;
+                    mon.slots.forEach((s, sIdx) => {
+                        slotsHTML += `
+                            <div class="slot">
+                                <div><strong>★${s.rarity} 能力:</strong> ${s.ability}</div>
+                                <button class="reroll-btn" onclick="rerollAbility(${monIdx}, ${sIdx})">🎲 変更 (${REROLL_COST}pt)</button>
+                            </div>
+                        `;
                     });
+                }
+
+                let ivHTML = "";
+                if (mon.slots.length > 0) {
+                    if (!mon.ivs) mon.ivs = generateIVs();
+                    let ivGridHTML = "";
+                    for (let type in STAT_CONFIG) {
+                        const conf = STAT_CONFIG[type];
+                        const ivData = mon.ivs[type];
+                        const isLocked = !!mon.locks[type];
+                        const ocCost = OVERCLOCK_COST_TABLE[mon.slots[0].rarity];
+                        
+                        ivGridHTML += `
+                            <div class="iv-item">
+                                <div>
+                                    <span style="color:#aaa;">${conf.label}:</span> 
+                                    <span class="rank-${ivData.rank}">${ivData.rank}</span> 
+                                    <span style="font-size:11px; color:#888;">(+${ivData.value})</span>
+                                </div>
+                                <div style="display:flex; align-items:center;">
+                                    <label class="lock-label"><input type="checkbox" ${isLocked ? 'checked' : ''} onchange="toggleLock(${monIdx}, '${type}')"> 🔒</label>
+                                    <button class="overclock-btn" onclick="applyOverclock(${monIdx}, '${type}')" ${mon.hasOverclocked ? 'disabled' : ''}>⚡ (${ocCost}pt)</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    ivHTML = `
+                        <div class="iv-container">
+                            <div class="iv-header">
+                                <span style="font-size:12px; font-weight:bold; color:#ffeb3b;">📊 個体値ステータス</span>
+                                <button class="iv-reroll-btn" onclick="rerollIVs(${monIdx})">🎲 全再抽選 (${IV_REROLL_COST}pt)</button>
+                            </div>
+                            <div class="iv-grid">${ivGridHTML}</div>
+                        </div>
+                    `;
                 }
 
                 card.innerHTML = `
                     <div class="monster-header">
-                        <span style="font-weight:bold; color:#00d2ff;">${mon.name}</span>
+                        <input type="text" class="monster-name-input" value="${mon.name}" onchange="monsters[${monIdx}].name = this.value">
                         <span class="star-count">★${mon.currentStars}</span>
                     </div>
                     ${slotsHTML}
+                    ${ivHTML}
                 `;
                 container.appendChild(card);
             });
         }
 
+        /* モンスターの計算結果生成（完全に同期可能な形式） */
         function createCalculatedMonster(mon) {
             if (!mon.ivs) mon.ivs = generateIVs();
             return {
@@ -536,7 +579,8 @@
                 spd: STAT_BASE.spd + mon.ivs.spd.value,
                 critRate: STAT_BASE.critRate + mon.ivs.critRate.value,
                 critDmg: STAT_BASE.critDmg + mon.ivs.critDmg.value,
-                abilities: mon.slots.map(s => s.ability)
+                abilities: mon.slots.map(s => s.ability), // アビリティの文字列配列をそのまま送信
+                hasEndured: false
             };
         }
 
@@ -587,6 +631,8 @@
             if (isMyStarterReady && isOpponentStarterReady) {
                 document.getElementById('pre-battle-room').style.display = "none";
                 document.getElementById('battle-screen').style.display = "block";
+                document.getElementById('display-player-name').textContent = `[${playerName}]`;
+                document.getElementById('display-enemy-name').textContent = `[${enemyPlayerName}]`;
                 updateBattleDisplay();
             }
         }
@@ -599,15 +645,45 @@
             document.getElementById('p-hp-cur').textContent = Math.max(0, pMon.hp);
             document.getElementById('p-hp-max').textContent = pMon.maxHp;
             document.getElementById('p-hp-bar').style.width = `${Math.max(0, (pMon.hp / pMon.maxHp) * 100)}%`;
+            document.getElementById('p-atk').textContent = pMon.atk;
+            document.getElementById('p-def').textContent = pMon.def;
+            document.getElementById('p-spd').textContent = pMon.spd;
+            document.getElementById('p-crit-rate').textContent = pMon.critRate;
+            document.getElementById('p-crit-dmg').textContent = pMon.critDmg;
+
+            const pAbiList = document.getElementById('p-abilities');
+            pAbiList.innerHTML = pMon.abilities.length > 0 
+                ? pMon.abilities.map(a => `<li>• ${a}</li>`).join('') 
+                : '<li style="color:#666;">なし</li>';
 
             document.getElementById('e-mon-name').textContent = eMon.name;
             document.getElementById('e-hp-cur').textContent = Math.max(0, eMon.hp);
             document.getElementById('e-hp-max').textContent = eMon.maxHp;
             document.getElementById('e-hp-bar').style.width = `${Math.max(0, (eMon.hp / eMon.maxHp) * 100)}%`;
+            document.getElementById('e-atk').textContent = eMon.atk;
+            document.getElementById('e-def').textContent = eMon.def;
+            document.getElementById('e-spd').textContent = eMon.spd;
+            document.getElementById('e-crit-rate').textContent = eMon.critRate;
+            document.getElementById('e-crit-dmg').textContent = eMon.critDmg;
+
+            const eAbiList = document.getElementById('e-abilities');
+            eAbiList.innerHTML = eMon.abilities.length > 0 
+                ? eMon.abilities.map(a => `<li>• ${a}</li>`).join('') 
+                : '<li style="color:#666;">なし</li>';
+        }
+
+        function logMessage(text, className = "") {
+            const box = document.getElementById('battle-log');
+            const div = document.createElement('div');
+            div.className = `log-entry ${className}`;
+            div.innerHTML = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
         }
 
         function selectTurnAction(type, detail = null) {
             myTurnChoice = { type, detail };
+            document.getElementById('selected-action-display').textContent = `選択中の行動: ${type === 'attack' ? '⚔️ 攻撃' : '🔄 交代'}`;
             document.getElementById('btn-confirm-action').disabled = false;
         }
 
@@ -633,18 +709,81 @@
         }
 
         async function processTurn() {
-            // ダメージ計算とターン消化
-            let pDmg = Math.max(10, playerTeam[pActiveIdx].atk - enemyTeam[eActiveIdx].def * 0.5);
-            let eDmg = Math.max(10, enemyTeam[eActiveIdx].atk - playerTeam[pActiveIdx].def * 0.5);
+            logMessage(`--- ターン処理開始 ---`, 'log-system');
 
-            enemyTeam[eActiveIdx].hp -= pDmg;
-            playerTeam[pActiveIdx].hp -= eDmg;
+            const pMon = playerTeam[pActiveIdx];
+            const eMon = enemyTeam[eActiveIdx];
+
+            let pFirst = pMon.spd >= eMon.spd;
+
+            // 素早さ比較で行動順を処理
+            if (pFirst) {
+                await executeSingleAction(pMon, eMon, myTurnChoice, true);
+                if (eMon.hp > 0) await executeSingleAction(eMon, pMon, enemySelectedAction, false);
+            } else {
+                await executeSingleAction(eMon, pMon, enemySelectedAction, false);
+                if (pMon.hp > 0) await executeSingleAction(pMon, eMon, myTurnChoice, true);
+            }
+
+            // ターン終了時リジェネ等の処理
+            applyEndTurnAbilities(pMon, true);
+            applyEndTurnAbilities(eMon, false);
 
             updateBattleDisplay();
 
             isMyTurnConfirmed = false;
             isOpponentTurnConfirmed = false;
             isProcessingTurn = false;
+            document.getElementById('selected-action-display').textContent = "選択中の行動: なし";
+        }
+
+        async function executeSingleAction(attacker, defender, action, isPlayer) {
+            if (action.type === 'attack') {
+                let baseDmg = Math.max(10, attacker.atk * (100 / (100 + defender.def)));
+                
+                // 会心判定
+                let isCrit = Math.random() * 100 < attacker.critRate;
+                if (isCrit) baseDmg *= (1.5 + attacker.critDmg / 100);
+
+                // 被ダメージ軽減アビリティ
+                defender.abilities.forEach(abi => {
+                    if (abi.includes("かすり傷")) baseDmg *= 0.95;
+                    if (abi.includes("鉄壁")) baseDmg *= 0.88;
+                    if (abi.includes("金剛")) baseDmg *= 0.80;
+                    if (abi.includes("絶対防御")) baseDmg *= 0.65;
+                });
+
+                let dmg = Math.round(baseDmg);
+                defender.hp -= dmg;
+
+                logMessage(`${attacker.name} の攻撃！ ${isCrit ? '<span class="log-crit">💥 会心の一撃！</span>' : ''} ${defender.name} に <span class="log-damage">${dmg}</span> のダメージ！`, 'log-attack');
+
+                // 不屈の魂
+                if (defender.hp <= 0 && defender.abilities.some(a => a.includes("不屈の魂")) && !defender.hasEndured) {
+                    defender.hp = 1;
+                    defender.hasEndured = true;
+                    logMessage(`✨ ${defender.name} は不屈の魂で持ちこたえた！`, 'log-system');
+                }
+
+                await sleep(600);
+            }
+        }
+
+        function applyEndTurnAbilities(mon, isPlayer) {
+            if (mon.hp <= 0) return;
+            mon.abilities.forEach(abi => {
+                let healPercent = 0;
+                if (abi.includes("微再生")) healPercent = 0.03;
+                if (abi.includes("リジェネ") && !abi.includes("ハイ") && !abi.includes("超")) healPercent = 0.07;
+                if (abi.includes("ハイリジェネ")) healPercent = 0.12;
+                if (abi.includes("超リジェネ")) healPercent = 0.20;
+
+                if (healPercent > 0) {
+                    let heal = Math.round(mon.maxHp * healPercent);
+                    mon.hp = Math.min(mon.maxHp, mon.hp + heal);
+                    logMessage(`💖 ${mon.name} はアビリティで HP を ${heal} 回復した！`, 'log-system');
+                }
+            });
         }
     </script>
 </body>
