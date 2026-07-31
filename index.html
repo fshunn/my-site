@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - 画面揺れ演出復活＆マルチ同期版 (Ver 7.5)</title>
+    <title>STAR FORGE - ロック機能修正＆画面揺れ完全版 (Ver 7.6)</title>
     <!-- PeerJS ライブラリ -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -122,13 +122,6 @@
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: #2a2a2a; padding: 20px; border-radius: 12px; border: 1px solid #555; width: 340px; text-align: center; }
-        .switch-item { background: #1f1f1f; border: 1px solid #444; padding: 10px; margin: 8px 0; border-radius: 6px; cursor: pointer; text-align: left; }
-        .switch-item:hover:not(.disabled) { background: #333; border-color: #00d2ff; }
-        .switch-item.disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .result-content { background: #222; padding: 30px; border-radius: 16px; border: 3px solid #ffeb3b; width: 380px; text-align: center; }
-        .result-title { font-size: 48px; font-weight: 900; margin: 0; }
-        .restart-modal-btn { font-size: 18px; padding: 12px 30px; background: #4caf50; color: white; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -243,27 +236,9 @@
         <div class="action-area">
             <div class="btn-group">
                 <button id="btn-select-attack" class="action-btn btn-attack" onclick="selectTurnAction('attack')">⚔️ 攻撃</button>
-                <button id="btn-select-switch" class="action-btn btn-switch" onclick="openSwitchModal(false)">🔄 交代</button>
             </div>
             <div id="selected-action-display" style="color:#aaa; font-size:13px;">選択中の行動: なし</div>
             <button id="btn-confirm-action" class="action-btn btn-confirm" onclick="confirmTurnAction()" disabled>OK (行動を確定)</button>
-        </div>
-    </div>
-
-    <!-- モーダル -->
-    <div id="switch-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-top:0; color:#00d2ff;">🔄 交代先を選択</h3>
-            <div id="switch-list"></div>
-            <button id="switch-modal-cancel-btn" onclick="closeSwitchModal()" style="margin-top:15px; background:#666;">キャンセル</button>
-        </div>
-    </div>
-
-    <div id="result-modal" class="modal-overlay">
-        <div id="result-box" class="result-content">
-            <h1 id="result-title" class="result-title">VICTORY</h1>
-            <p id="result-sub" style="color:#ccc; margin:15px 0;">決着がつきました！</p>
-            <button class="restart-modal-btn" onclick="location.reload()">🔄 もう一度プレイ</button>
         </div>
     </div>
 
@@ -411,13 +386,15 @@
         function getBinomialRandom(min, max) { const avg = (Math.random() + Math.random() + Math.random()) / 3; return Math.round(min + (max - min) * avg); }
         function getRank(val, min, max) { const r = (val - min) / (max - min); if (r >= 0.85) return "S"; if (r >= 0.60) return "A"; if (r >= 0.30) return "B"; return "C"; }
 
+        /* ロック機能の不備を修整したIV生成関数 */
         function generateIVs(existingIVs = null, locks = {}, overclockedStats = {}) {
             const result = {};
             for (let type in STAT_CONFIG) {
                 if (overclockedStats && overclockedStats[type]) {
                     result[type] = { rank: "SPlus", value: STAT_CONFIG[type].overclockVal };
-                } else if (locks[type] && existingIVs && existingIVs[type]) {
-                    result[type] = existingIVs[type];
+                } else if (locks && locks[type] === true && existingIVs && existingIVs[type]) {
+                    // ロックされている場合は既存のオブジェクトを保持
+                    result[type] = { ...existingIVs[type] };
                 } else {
                     const conf = STAT_CONFIG[type];
                     const val = getBinomialRandom(conf.min, conf.max);
