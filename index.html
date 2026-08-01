@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>STAR FORGE - A</title>
+    <title>STAR FORGE - AI難易度拡張版</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 950px; margin: 0 auto; }
@@ -25,7 +25,7 @@
         }
         .shake-effect { animation: shake 0.4s ease-in-out; }
 
-        #start-screen { text-align: center; padding: 40px 20px; background: #282828; border-radius: 12px; margin-top: 20px; }
+        #start-screen { text-align: center; padding: 40px 20px; background: #282828; border-radius: 12px; margin-top: 20px; position: relative; }
         .game-title { font-size: 42px; color: #ffeb3b; margin-bottom: 5px; }
         .subtitle { color: #aaa; margin-bottom: 25px; font-size: 15px; }
 
@@ -47,6 +47,18 @@
         .btn-hard { background: #ff9800; color: #000; }
         .btn-oni { background: #f44336; color: #fff; text-shadow: 0 0 4px #000; }
         .btn-despair { background: linear-gradient(135deg, #9c27b0 0%, #3f51b5 100%); color: #fff; text-shadow: 0 0 4px #000; border: 1px solid #e91e63; }
+
+        .btn-how-to-play {
+            background: linear-gradient(180deg, #ffea00 0%, #fbc02d 100%);
+            color: #000;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #fff;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 234, 0, 0.5);
+        }
 
         #lobby-screen { display: none; text-align: center; padding: 40px 20px; background: #222; border-radius: 12px; margin-top: 20px; border: 2px solid #00d2ff; }
         .room-code-display { font-size: 28px; color: #ffeb3b; font-weight: bold; background: #111; padding: 10px 20px; border-radius: 8px; display: inline-block; margin: 15px 0; border: 1px solid #444; }
@@ -205,11 +217,21 @@
         .result-win { color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b; }
         .result-lose { color: #f44336; text-shadow: 0 0 10px #f44336; }
         .result-draw { color: #00d2ff; text-shadow: 0 0 10px #00d2ff; }
+
+        /* 遊び方モーダル用スタイル */
+        .how-to-modal { max-width: 650px; text-align: left; max-height: 85vh; overflow-y: auto; }
+        .how-to-section { margin-bottom: 18px; border-bottom: 1px solid #444; padding-bottom: 12px; }
+        .how-to-section h4 { color: #00d2ff; margin: 0 0 8px 0; font-size: 16px; }
+        .how-to-section p, .how-to-section ul { font-size: 13px; color: #ddd; line-height: 1.6; margin: 0; padding-left: 18px; }
+        .how-to-section li { margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
+        <div style="position: absolute; top: 15px; right: 15px;">
+            <button class="btn-how-to-play" onclick="openHowToPlayModal()">📖 遊び方</button>
+        </div>
         <h1 class="game-title">STAR FORGE</h1>
         <p class="subtitle">- オンライン通信対戦 & AIバトル -</p>
 
@@ -291,7 +313,10 @@
                 <label for="player-name-input" style="color:#00d2ff; font-weight:bold;">👤 プレイヤー名:</label>
                 <input type="text" id="player-name-input" class="player-name-input" value="プレイヤー1" onchange="notifyBuildStatus()">
             </div>
-            <div id="opponent-build-status" class="opponent-status-badge">対戦相手: 作成中...</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn-how-to-play" onclick="openHowToPlayModal()">📖 遊び方</button>
+                <div id="opponent-build-status" class="opponent-status-badge">対戦相手: 作成中...</div>
+            </div>
         </div>
 
         <div class="header-status">
@@ -324,6 +349,7 @@
     <div id="battle-screen">
         <div class="header-status">
             <h2 style="margin:0; font-size:20px;">⚔️ バトルフィールド</h2>
+            <button class="btn-how-to-play" onclick="openHowToPlayModal()">📖 遊び方</button>
             <div id="turn-status-tag" class="turn-status-text">行動を選択してください</div>
         </div>
 
@@ -383,6 +409,52 @@
             <h3 id="switch-modal-title" style="color:#00d2ff; margin-top:0;">🔄 交代先のモンスターを選択</h3>
             <div id="switch-list"></div>
             <button id="switch-cancel-btn" onclick="closeSwitchModal()" style="margin-top:15px; background:#555;">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 遊び方モーダル -->
+    <div id="how-to-play-modal" class="modal-overlay">
+        <div class="modal-box how-to-modal">
+            <h3 style="color:#ffeb3b; text-align:center; margin-top:0;">📖 STAR FORGE 遊び方＆ルールガイド</h3>
+            
+            <div class="how-to-section">
+                <h4>1. 概要と勝利条件</h4>
+                <p>3体のモンスターでパーティを構築し、対戦相手のモンスターを全滅させたプレイヤーが勝利となります。</p>
+            </div>
+
+            <div class="how-to-section">
+                <h4>2. パーティ構築 (ビルド)</h4>
+                <ul>
+                    <li><strong>所持pt (5000pt):</strong> アビリティ解放やガチャ、ステータス厳選に使用します。</li>
+                    <li><strong>コスト制限 (最大★7):</strong> 3体の合計コストが★7以下になるように調整します。</li>
+                    <li><strong>アビリティ枠解放:</strong> 各モンスターに★1〜★4のアビリティ枠を開放できます（レア度が高いほど強力）。</li>
+                    <li><strong>アビリティ再抽選 (100pt):</strong> 取得したアビリティを他のアビリティへ変更します。</li>
+                    <li><strong>個体値再抽選 (150pt):</strong> 各ステータス（HP/攻撃/防御/素早さ/会心率/会心ダメUP）をランダムで再設定します。</li>
+                    <li><strong>🔒 ステータス固定:</strong> 保持したいステータスを最大2つまで固定してロックできます。</li>
+                    <li><strong>⚡ オーバークロック:</strong> コインを消費して指定したステータスを1つだけ最高ランク「S+」に強制強化できます。</li>
+                </ul>
+            </div>
+
+            <div class="how-to-section">
+                <h4>3. バトルシステム</h4>
+                <ul>
+                    <li><strong>コマンド選択:</strong> 毎ターン「攻撃」または「交代」を選択します。両者の行動決定後にターンが進行します。</li>
+                    <li><strong>行動順:</strong> 交代は攻撃より優先して行われます。攻撃同士の場合、「素早さ」が高いモンスターが先制します。</li>
+                    <li><strong>ダメージ計算:</strong> 攻撃力と防御力に応じて被ダメージが軽減されます。また、会心が発生すると追加ダメージを与えます。</li>
+                </ul>
+            </div>
+
+            <div class="how-to-section">
+                <h4>4. 状態異常 (毒・出血)</h4>
+                <ul>
+                    <li><strong>☠️ 毒:</strong> 付与されたスタック数に応じて毎ターン最大HPの4%分の固定ダメージを受けます（2ターン持続、低確率で効果時間延長）。</li>
+                    <li><strong>🩸 出血:</strong> 付与されたスタック数に応じて相手から受ける攻撃ダメージが15%ずつ増加します（受撃時に消費）。</li>
+                </ul>
+            </div>
+
+            <div style="text-align:center; margin-top:15px;">
+                <button onclick="closeHowToPlayModal()" style="font-size:16px; padding:8px 30px; background:#2196f3; color:#fff;">閉じる</button>
+            </div>
         </div>
     </div>
 
@@ -472,6 +544,14 @@
                 "血の惨劇（攻撃時:出血+3 [各スタック2T持続/被ダメ+15%]）"
             ]
         };
+
+        function openHowToPlayModal() {
+            document.getElementById('how-to-play-modal').style.display = 'flex';
+        }
+
+        function closeHowToPlayModal() {
+            document.getElementById('how-to-play-modal').style.display = 'none';
+        }
 
         function joinLobby(role) {
             const rawPass = document.getElementById('passcode-input').value.trim();
